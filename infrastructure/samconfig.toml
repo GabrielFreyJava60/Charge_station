@@ -1,0 +1,21 @@
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "ev-charging-station-dev"
+resolve_s3 = true
+s3_prefix = "ev-charging-station"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment=dev"
+
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "ev-charging-station-prod"
+resolve_s3 = true
+s3_prefix = "ev-charging-station-prod"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment=prod"
