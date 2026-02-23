@@ -1,23 +1,26 @@
 # Frontend Pages & Routes
 
-This document is the single source of truth for all pages in the React SPA.  
-It covers routes, roles, UI content, Redux state, API calls, and navigation flows.
+This document is the **shared contract between frontend and backend teams**.  
+Use it to synchronize page stubs, API endpoints, and integration status.  
+Changes to routes or API contracts must be agreed by both sides before implementation.
 
 ---
 
 ## Table of Contents
 
 1. [Route Map Summary](#route-map-summary)
-2. [Guard & Redirect Rules](#guard--redirect-rules)
-3. [Layout Groups](#layout-groups)
-4. [Public Pages](#public-pages)
-5. [Authenticated Pages (any role)](#authenticated-pages-any-role)
-6. [TECH_SUPPORT Pages](#tech_support-pages)
-7. [ADMIN Pages](#admin-pages)
-8. [Query Parameters](#query-parameters)
-9. [Page Titles](#page-titles)
-10. [State Persistence](#state-persistence)
-11. [Destructive Actions](#destructive-actions)
+2. [API Sync Status](#api-sync-status)
+3. [Auth Strategy](#auth-strategy)
+4. [Guard & Redirect Rules](#guard--redirect-rules)
+5. [Layout Groups](#layout-groups)
+6. [Public Pages](#public-pages)
+7. [Authenticated Pages (any role)](#authenticated-pages-any-role)
+8. [TECH_SUPPORT Pages](#tech_support-pages)
+9. [ADMIN Pages](#admin-pages)
+10. [Query Parameters](#query-parameters)
+11. [Page Titles](#page-titles)
+12. [State Persistence](#state-persistence)
+13. [Destructive Actions](#destructive-actions)
 
 ---
 
@@ -62,6 +65,84 @@ It covers routes, roles, UI content, Redux state, API calls, and navigation flow
 | `/admin/users` | `UserManagement` | ADMIN only |
 | `/admin/stations` | `StationAdmin` | ADMIN only |
 | `/admin/tariffs` | `TariffManagement` | ADMIN only |
+
+---
+
+## API Sync Status
+
+Tracks which endpoints are implemented on each side.  
+Update this table when status changes. Agreed changes only.
+
+**Legend:** `✓` done · `stub` placeholder returning mock data · `—` not started
+
+| Method | Endpoint | Frontend | Backend | Notes |
+|---|---|:---:|:---:|---|
+| `POST` | `/api/auth/register` | ✓ | stub | |
+| `POST` | `/api/auth/login` | ✓ | stub | returns `accessToken`, `role`, `userId` |
+| `POST` | `/api/auth/refresh` | ✓ | stub | |
+| `GET` | `/api/health` | ✓ | ✓ | basic health check |
+| `GET` | `/api/health?full=true` | ✓ | ✓ | invokes Lambda health check |
+| `GET` | `/api/stations` | ✓ | stub | query param `?status=` |
+| `GET` | `/api/stations/:id` | ✓ | stub | includes ports array |
+| `POST` | `/api/sessions/start` | ✓ | stub | `{ stationId, portId, batteryCapacityKwh, targetChargePercent }` |
+| `POST` | `/api/sessions/:id/stop` | ✓ | stub | |
+| `GET` | `/api/sessions/active` | ✓ | stub | current user only |
+| `GET` | `/api/sessions/history` | ✓ | stub | current user only |
+| `GET` | `/api/sessions/all` | ✓ | stub | TECH_SUPPORT+ADMIN, query param `?status=` |
+| `GET` | `/api/tech-support/errors` | ✓ | stub | filters: `level`, `service`, `status`, `from`, `to` |
+| `PATCH` | `/api/tech-support/errors/:id/status` | ✓ | stub | `{ status }` |
+| `PATCH` | `/api/tech-support/stations/:id/mode` | ✓ | stub | `{ status }` |
+| `GET` | `/api/tech-support/stats` | ✓ | stub | `{ activeSessions, totalStations, unresolvedErrors }` |
+| `GET` | `/api/admin/users` | ✓ | stub | |
+| `PATCH` | `/api/admin/users/:id/role` | ✓ | stub | `{ role }` |
+| `PATCH` | `/api/admin/users/:id/block` | ✓ | stub | `{ blocked }` |
+| `DELETE` | `/api/admin/users/:id` | ✓ | stub | |
+| `POST` | `/api/admin/stations` | ✓ | stub | create station |
+| `PATCH` | `/api/admin/stations/:id/commission` | ✓ | stub | NEW → ACTIVE |
+| `PATCH` | `/api/admin/stations/:id/tariff` | ✓ | stub | `{ tariffPerKwh }` |
+
+---
+
+## Auth Strategy
+
+### Current implementation (temporary)
+
+`accessToken` and `user` are stored in `localStorage` for simplicity.
+
+```ts
+// TODO: replace with httpOnly cookie via BFF — agreed with backend team
+localStorage.setItem('accessToken', token)
+```
+
+**Known limitation:** `localStorage` is accessible from JavaScript, making it
+vulnerable to XSS attacks. This is acceptable for the current development phase
+but must be replaced before any production deployment.
+
+### Planned implementation — BFF + httpOnly cookie
+
+Agreed approach: introduce a **Backend-For-Frontend (BFF)** layer that handles
+token exchange with AWS Cognito and stores the session as an `httpOnly` cookie.
+
+```
+Browser  →  BFF (Node/Express)  →  AWS Cognito
+                    ↓
+     Set-Cookie: sessionId=...; HttpOnly; Secure; SameSite=Strict
+```
+
+**Requires changes on both sides — to be done in one coordinated iteration:**
+
+| Side | Change |
+|---|---|
+| **Backend** | `/auth/login` sets `httpOnly` cookie instead of returning token in body |
+| **Backend** | All protected routes read session from cookie, not `Authorization` header |
+| **Backend** | `/auth/logout` clears cookie via `Set-Cookie: ...; Max-Age=0` |
+| **Frontend** | Remove `localStorage.setItem('accessToken', ...)` |
+| **Frontend** | Remove `Authorization` header from Axios — browser sends cookie automatically |
+| **Frontend** | Add `withCredentials: true` to Axios instance |
+| **Frontend** | Remove token from `localStorage` on logout (already handled by server cookie) |
+
+Until this is implemented, the `localStorage` approach remains with short-lived
+access tokens (15 min TTL configured in Cognito App Client).
 
 ---
 

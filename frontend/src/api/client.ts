@@ -6,6 +6,9 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+// TODO(auth): remove Authorization header injection after BFF migration.
+// Browser will send the httpOnly session cookie automatically — no manual header needed.
+// Also add withCredentials: true to the axios instance config above.
 client.interceptors.request.use((reqConfig) => {
   const token = localStorage.getItem('accessToken')
   if (token) reqConfig.headers.Authorization = `Bearer ${token}`
@@ -17,6 +20,8 @@ client.interceptors.response.use(
   (error: { response?: { status: number } }) => {
     const status = error.response?.status
     if (status === 401) {
+      // TODO(auth): after BFF migration, 401 means the httpOnly cookie expired.
+      // Server will handle cookie invalidation; frontend just redirects to login.
       localStorage.removeItem('accessToken')
       localStorage.removeItem('user')
       const redirect = encodeURIComponent(window.location.pathname)

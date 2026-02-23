@@ -19,6 +19,9 @@ export interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // TODO(auth): replace localStorage with in-memory state + silent refresh
+  // once BFF is ready. user object will be restored via GET /api/auth/me
+  // on app bootstrap using the httpOnly session cookie.
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('user')
     return saved ? (JSON.parse(saved) as User) : null
@@ -26,6 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // TODO(auth): remove this effect entirely after BFF migration.
+  // Session state will be managed server-side via httpOnly cookie.
   useEffect(() => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user))
@@ -40,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
     try {
       const { data } = await authAPI.login({ email, password })
+      // TODO(auth): remove after BFF migration — token will live in httpOnly cookie set by server
       localStorage.setItem('accessToken', data.accessToken ?? data.idToken ?? '')
       const userData: User = {
         userId: data.userId,
@@ -79,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null)
+    // TODO(auth): replace with POST /api/auth/logout which clears the httpOnly cookie server-side
     localStorage.removeItem('accessToken')
     localStorage.removeItem('user')
   }, [])
