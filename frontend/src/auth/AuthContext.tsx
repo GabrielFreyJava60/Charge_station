@@ -1,13 +1,7 @@
 import { createContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { authAPI } from '@/api/client'
-
-export interface User {
-  userId: string
-  email: string
-  role: string
-  accessToken?: string
-  refreshToken?: string
-}
+import { getErrorMessage } from '@/utils/error'
+import type { User } from '@/types'
 
 export interface AuthContextType {
   user: User | null
@@ -24,11 +18,7 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
-interface AuthProviderProps {
-  children: ReactNode
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('user')
     return saved ? (JSON.parse(saved) as User) : null
@@ -54,16 +44,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const userData: User = {
         userId: data.userId,
         email: data.email ?? email,
-        role: data.role,
+        role: data.role as User['role'],
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
       }
       setUser(userData)
       return userData
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-        'Login failed'
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Login failed')
       setError(msg)
       throw new Error(msg)
     } finally {
@@ -72,16 +60,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const register = useCallback(
-    async (email: string, password: string, name: string, phoneNumber?: string): Promise<unknown> => {
+    async (email: string, password: string, name: string, phoneNumber?: string) => {
       setLoading(true)
       setError(null)
       try {
         const { data } = await authAPI.register({ email, password, name, phoneNumber })
         return data
-      } catch (err: unknown) {
-        const msg =
-          (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-          'Registration failed'
+      } catch (err) {
+        const msg = getErrorMessage(err, 'Registration failed')
         setError(msg)
         throw new Error(msg)
       } finally {
@@ -97,18 +83,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('user')
   }, [])
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    error,
-    login,
-    register,
-    logout,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'ADMIN',
-    isTechSupport: user?.role === 'TECH_SUPPORT',
-    isUser: user?.role === 'USER',
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        error,
+        login,
+        register,
+        logout,
+        isAuthenticated: !!user,
+        isAdmin: user?.role === 'ADMIN',
+        isTechSupport: user?.role === 'TECH_SUPPORT',
+        isUser: user?.role === 'USER',
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
