@@ -21,21 +21,50 @@ A TypeScript single-page application for managing electric vehicle charging stat
 
 ## Pages & Role Visibility
 
+### Public (no auth required)
+
+| Path | Page | Notes |
+|---|---|---|
+| `/login` | Sign in | Redirects to `/` if already authenticated |
+| `/register` | Sign up | — |
+| `/error/forbidden` | Access Denied (403) | — |
+| `/error/system` | Server Error (500) | — |
+| `/*` | Not Found (404) | Catch-all |
+
+> **401** → redirect to `/login?redirect={path}` via Axios interceptor
+
+### Authenticated (any role)
+
 | Path | Page | USER | TECH_SUPPORT | ADMIN |
 |---|---|:---:|:---:|:---:|
 | `/` | Dashboard + Health Check | ✓ | ✓ | ✓ |
-| `/stations` | Station list | ✓ | ✓ | ✓ |
+| `/stations` | Station list (search / filter) | ✓ | ✓ | ✓ |
 | `/stations/:id` | Station detail + start charging | ✓ | ✓ | ✓ |
-| `/charging` | Active charging session | ✓ | ✓ | ✓ |
-| `/history` | Session history | ✓ | ✓ | ✓ |
-| `/tech/errors` | Error log | — | ✓ | ✓ |
-| `/tech/manage` | Station mode management | — | ✓ | ✓ |
-| `/tech/stats` | System statistics | — | ✓ | ✓ |
-| `/admin/users` | User management | — | — | ✓ |
-| `/admin/stations` | Create & commission stations | — | — | ✓ |
-| `/admin/tariffs` | Tariff editor | — | — | ✓ |
-| `/login` | Sign in | public | public | public |
-| `/register` | Sign up | public | public | public |
+| `/sessions/current` | Active charging session | ✓ | ✓ | ✓ |
+| `/sessions/history` | Session history | ✓ | ✓ | ✓ |
+| `/account/profile` | User profile + sign out | ✓ | ✓ | ✓ |
+| `/account/settings` | Notifications & preferences | ✓ | ✓ | ✓ |
+
+### TECH_SUPPORT (authorized only)
+
+| Path | Page | Notes |
+|---|---|---|
+| `/support/dashboard` | Operations dashboard | Active requests, errors, quick links |
+| `/support/logs` | Error logs | Review & resolve error reports |
+| `/support/stations` | Station management | Set station modes |
+| `/support/sessions` | Active sessions | Monitor & force-stop sessions |
+
+### ADMIN (authorized only)
+
+| Path | Page | Notes |
+|---|---|---|
+| `/admin/dashboard` | Admin dashboard | Quick links to all admin sections |
+| `/admin/users` | User management | Change role, block, delete |
+| `/admin/stations` | Stations management | Create, edit, commission |
+| `/admin/tariffs` | Tariffs management | Pricing rules |
+
+> **403** → redirect to `/error/forbidden` via `ProtectedRoute` or Axios interceptor  
+> **5xx** → redirect to `/error/system` via Axios interceptor
 
 ---
 
@@ -545,7 +574,7 @@ frontend/
 {
   auth:        { user: User | null, loading, error }
   stations:    { list: Station[], currentStation, loading, error }
-  sessions:    { activeSession: Session | null, history: Session[], loading, error }
+  sessions:    { activeSession: Session | null, history: Session[], allSessions: Session[], loading, error }
   health:      { response: HealthResponse | null, loading, error, lastChecked }
   admin:       { users: User[], loading, error }
   techSupport: { errors: ErrorLog[], stats, loading, error }
@@ -559,19 +588,32 @@ All async operations use `createAsyncThunk`. Errors unwrapped via `getErrorMessa
 ```tsx
 // All authenticated users
 <Route path="/stations" element={<ProtectedRoute><Layout><StationList /></Layout></ProtectedRoute>} />
+<Route path="/sessions/current" element={<ProtectedRoute><Layout><ChargingSession /></Layout></ProtectedRoute>} />
+<Route path="/account/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
 
 // TECH_SUPPORT and ADMIN only
-<Route path="/tech/errors" element={<ProtectedRoute roles={['TECH_SUPPORT','ADMIN']}>...</ProtectedRoute>} />
+<Route path="/support/logs" element={<ProtectedRoute roles={['TECH_SUPPORT','ADMIN']}>...</ProtectedRoute>} />
+<Route path="/support/sessions" element={<ProtectedRoute roles={['TECH_SUPPORT','ADMIN']}>...</ProtectedRoute>} />
 
 // ADMIN only
+<Route path="/admin/dashboard" element={<ProtectedRoute roles={['ADMIN']}>...</ProtectedRoute>} />
 <Route path="/admin/users" element={<ProtectedRoute roles={['ADMIN']}>...</ProtectedRoute>} />
+
+// Error pages (public — no auth guard)
+<Route path="/error/forbidden" element={<ErrorForbidden />} />
+<Route path="/error/system" element={<ErrorSystem />} />
+<Route path="*" element={<NotFound />} />
 ```
+
+`ProtectedRoute` behaviour:
+- Not authenticated → `/login?redirect={path}`
+- Wrong role → `/error/forbidden`
 
 ### HTTP Client
 
 - `baseURL` from `config.apiBaseUrl` (env var `VITE_API_BASE_URL`)
 - **Request interceptor** — adds `Authorization: Bearer <token>` to every request
-- **Response interceptor** — on 401: clear tokens → redirect `/login`
+- **Response interceptor** — `401` → clear tokens + `/login?redirect={path}` · `403` → `/error/forbidden` · `5xx` → `/error/system`
 
 ---
 

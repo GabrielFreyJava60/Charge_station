@@ -60,6 +60,9 @@ export interface HealthResponse {
 }
 
 export interface TechSupportStats {
+  activeSessions?: number;
+  totalStations?: number;
+  unresolvedErrors?: number;
   [key: string]: unknown;
 }
 

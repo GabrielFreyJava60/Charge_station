@@ -53,7 +53,7 @@ export default function StationDetail() {
     setError('');
     try {
       await sessionsAPI.start({ stationId: id as string, portId, batteryCapacityKwh: battery });
-      navigate('/charging');
+      navigate('/sessions/current');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || 'Failed to start charging');

@@ -28,7 +28,7 @@ const cards: CardItem[] = [
     ),
   },
   {
-    to: '/charging',
+    to: '/sessions/current',
     label: 'Текущая зарядка',
     desc: 'Активная сессия',
     gradient: 'linear-gradient(135deg, #0A84FF, #5AC8FA)',
@@ -40,7 +40,7 @@ const cards: CardItem[] = [
     ),
   },
   {
-    to: '/history',
+    to: '/sessions/history',
     label: 'История',
     desc: 'Архив сессий',
     gradient: 'linear-gradient(135deg, #BF5AF2, #9B59B6)',
@@ -55,7 +55,7 @@ const cards: CardItem[] = [
 
 const techCards: CardItem[] = [
   {
-    to: '/tech/stats',
+    to: '/support/dashboard',
     label: 'Мониторинг',
     desc: 'Статистика нагрузки',
     gradient: 'linear-gradient(135deg, #FF9F0A, #FF6B35)',
@@ -70,8 +70,8 @@ const techCards: CardItem[] = [
 
 const adminCards: CardItem[] = [
   {
-    to: '/admin/users',
-    label: 'Пользователи',
+    to: '/admin/dashboard',
+    label: 'Администрирование',
     desc: 'Управление ролями',
     gradient: 'linear-gradient(135deg, #FF453A, #FF6B6B)',
     glow: 'rgba(255,69,58,0.25)',

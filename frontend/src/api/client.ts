@@ -15,10 +15,16 @@ client.interceptors.request.use((reqConfig) => {
 client.interceptors.response.use(
   (response) => response,
   (error: { response?: { status: number } }) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    if (status === 401) {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      const redirect = encodeURIComponent(window.location.pathname)
+      window.location.href = `/login?redirect=${redirect}`
+    } else if (status === 403) {
+      window.location.href = '/error/forbidden'
+    } else if (status && status >= 500) {
+      window.location.href = '/error/system'
     }
     return Promise.reject(error)
   }

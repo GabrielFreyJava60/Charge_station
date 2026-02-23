@@ -6,6 +6,7 @@ import type { Session, StartChargingParams } from '@/types'
 interface SessionsState {
   activeSession: Session | null
   history: Session[]
+  allSessions: Session[]
   loading: boolean
   error: string | null
 }
@@ -13,6 +14,7 @@ interface SessionsState {
 const initialState: SessionsState = {
   activeSession: null,
   history: [],
+  allSessions: [],
   loading: false,
   error: null,
 }
@@ -49,6 +51,30 @@ export const startCharging = createAsyncThunk(
       return data.session as Session
     } catch (err) {
       return rejectWithValue(getErrorMessage(err, 'Не удалось запустить зарядку'))
+    }
+  }
+)
+
+export const fetchAllSessions = createAsyncThunk(
+  'sessions/fetchAll',
+  async (status: string | undefined, { rejectWithValue }) => {
+    try {
+      const { data } = await sessionsAPI.getAll(status)
+      return data.sessions as Session[]
+    } catch (err) {
+      return rejectWithValue(getErrorMessage(err, 'Ошибка загрузки сессий'))
+    }
+  }
+)
+
+export const forceStopSession = createAsyncThunk(
+  'sessions/forceStop',
+  async (sessionId: string, { rejectWithValue }) => {
+    try {
+      const { data } = await sessionsAPI.stop(sessionId)
+      return data.session as Session
+    } catch (err) {
+      return rejectWithValue(getErrorMessage(err, 'Ошибка принудительной остановки'))
     }
   }
 )
@@ -100,6 +126,25 @@ const sessionsSlice = createSlice({
         state.activeSession = null
       })
       .addCase(stopCharging.rejected, (state, action) => {
+        state.error = action.payload as string
+      })
+      .addCase(fetchAllSessions.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(fetchAllSessions.fulfilled, (state, action) => {
+        state.loading = false
+        state.allSessions = action.payload
+      })
+      .addCase(fetchAllSessions.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
+      .addCase(forceStopSession.fulfilled, (state, action) => {
+        state.allSessions = state.allSessions.filter(
+          (s) => s.sessionId !== action.payload.sessionId
+        )
+      })
+      .addCase(forceStopSession.rejected, (state, action) => {
         state.error = action.payload as string
       })
   },
