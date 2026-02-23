@@ -105,31 +105,32 @@ This table shows which API endpoints are ready on each side.
 
 ### Right now
 
-After login, the server sends back an **access token** (a string that proves who you are).
-We save it in `localStorage` — browser storage that any JavaScript on the page can read.
+After login, the server returns an **`accessToken`** (a JWT string that proves who the user is).
+The frontend saves it in **`localStorage`** and attaches it to every API request as an
+`Authorization: Bearer <token>` header.
 
-This is simple to implement but not fully secure: if someone manages to inject
-malicious code into the page, they could steal the token.
-It is fine for this stage of the project.
+`localStorage` is readable by any JavaScript on the page, which is a known security risk (XSS).
+This is acceptable for the current development phase.
 
-### Planned improvement (needs backend + frontend to do together)
+### Planned — BFF + httpOnly cookie (agreed, needs both teams)
 
-Instead of giving the token to the frontend at all, the server will store the session
-in a **secure cookie** that JavaScript cannot read. The browser sends it automatically
-with every request — the frontend never touches it.
+The plan is to introduce a **BFF (Backend-For-Frontend)** — a server layer that handles
+the token exchange with Cognito and stores the session in an **`httpOnly` cookie**.
+An `httpOnly` cookie is set by the server and cannot be read by JavaScript at all,
+which removes the XSS risk entirely. The browser sends it automatically with every request.
 
-What needs to change on each side:
+What needs to change:
 
-| Side | What to do |
+| Side | Change |
 |---|---|
-| Backend | On login, set a secure cookie instead of returning the token in the response body |
-| Backend | On all protected routes, read the cookie instead of the Authorization header |
-| Backend | On logout, delete the cookie |
-| Frontend | Remove the code that saves the token to localStorage |
-| Frontend | Remove the code that adds the token to every request header |
-| Frontend | Add `withCredentials: true` to the HTTP client config |
+| Backend | `POST /auth/login` sets an `httpOnly` cookie instead of returning the token in the response body |
+| Backend | Protected routes read the session from the cookie, not the `Authorization` header |
+| Backend | `POST /auth/logout` clears the cookie server-side |
+| Frontend | Remove `localStorage.setItem('accessToken', ...)` |
+| Frontend | Remove the `Authorization` header from the Axios request interceptor |
+| Frontend | Add `withCredentials: true` to the Axios instance so cookies are sent cross-origin |
 
-This will be done in one step by both teams together.
+This will be done in one coordinated step by both teams.
 
 ---
 
@@ -147,8 +148,8 @@ What happens when a user tries to open a page they shouldn't:
 | Already logged in, opens `/login` | Redirected to `/` |
 
 These rules are enforced in two places:
-- `ProtectedRoute` component in `App.tsx` — checks role before rendering a page
-- HTTP client in `api/client.ts` — catches error responses from the server
+- **`ProtectedRoute`** component (`src/auth/ProtectedRoute.tsx`) — checks auth and role before rendering a page
+- **Axios response interceptor** (`src/api/client.ts`) — catches HTTP error codes from the server and redirects accordingly
 
 ---
 
@@ -179,7 +180,8 @@ Every page uses one of three layouts:
 - Error message if login fails
 - Quick login hints in development mode
 
-**After login:** user is taken to the page they originally tried to open, or to `/`
+**Redux state:** `auth.loading`, `auth.error`  
+**After login:** user is redirected to `?redirect` param or `/`
 
 ---
 
@@ -193,7 +195,8 @@ Every page uses one of three layouts:
 - Link back to login
 - Validation errors under each field
 
-**After registration:** user is taken to `/login`
+**Redux state:** `auth.loading`, `auth.error`  
+**After registration:** navigate to `/login`
 
 ---
 
@@ -206,7 +209,7 @@ Every page uses one of three layouts:
 - Short message explaining they don't have access
 - "Back to Home" button
 
-**When it appears:** user tries to open a page their role doesn't allow
+**Triggered by:** `ProtectedRoute` (wrong role) or Axios `403` response
 
 ---
 
@@ -219,7 +222,7 @@ Every page uses one of three layouts:
 - Short message that something went wrong on the server
 - "Go Back" and "Home" buttons
 
-**When it appears:** the server returns a 500-level error
+**Triggered by:** Axios interceptor on HTTP `5xx` response
 
 ---
 
@@ -244,9 +247,11 @@ Every page uses one of three layouts:
 - Greeting with their name
 - Cards linking to main sections (more cards shown for tech support and admin)
 - **Health Check** panel:
-  - "Health Check" button — asks the server if it's alive
-  - "Full Health Check" button — also checks the database and background services
-  - Shows the server's response and when the check was last run
+    - "Health Check" button → `GET /api/health`
+  - "Full Health Check" button → `GET /api/health?full=true` (also checks DynamoDB and Lambda)
+  - Shows the JSON response and the timestamp of the last check
+
+**Redux state:** `health.response`, `health.loading`, `health.error`, `health.lastChecked`
 
 ---
 
@@ -261,7 +266,9 @@ Every page uses one of three layouts:
 - Cards for each station showing name, address, status, available ports, price
 - Each card links to that station's detail page
 
-**API:** `GET /api/stations`
+**Redux state:** `stations.list`, `stations.loading`, `stations.error`  
+**API:** `GET /api/stations?status=`  
+**Filter persistence:** search + status filter are saved in the URL
 
 ---
 
@@ -277,8 +284,9 @@ Every page uses one of three layouts:
 - A small form to enter battery size and target charge level
 - Back link to the station list
 
+**Redux state:** `stations.currentStation`, `sessions.activeSession`, `sessions.loading`  
 **API:** `GET /api/stations/:id`, `POST /api/sessions/start`  
-**After starting:** user is taken to `/sessions/current`
+**On success:** navigate to `/sessions/current`
 
 ---
 
@@ -295,9 +303,10 @@ Every page uses one of three layouts:
 - "Stop Charging" button (asks for confirmation first)
 - If no session is active: message with a link to find a station
 
-**The page refreshes automatically every 10 seconds.**
+**The page auto-refreshes every 10 seconds (polling via `usePolling` hook).**
 
-**API:** `GET /api/sessions/active`, `POST /api/sessions/:id/stop`
+**Redux state:** `sessions.activeSession`, `sessions.loading`, `sessions.error`  
+**API:** `GET /api/sessions/active` (on mount + poll), `POST /api/sessions/:id/stop`
 
 ---
 
@@ -311,6 +320,7 @@ Every page uses one of three layouts:
 - List of past sessions (newest first) with station, energy, cost, duration, and status
 - Total summary at the bottom
 
+**Redux state:** `sessions.history`, `sessions.loading`  
 **API:** `GET /api/sessions/history`
 
 ---
@@ -324,6 +334,8 @@ Every page uses one of three layouts:
 - Their avatar (initials), email, and role
 - Account details
 - "Sign Out" button
+
+**Redux state:** `auth.user` (read from `AuthContext`)
 
 ---
 
@@ -348,6 +360,7 @@ Every page uses one of three layouts:
 - Three counters: active sessions, total stations, unresolved errors
 - Quick links to logs, station controls, and active sessions
 
+**Redux state:** `techSupport.stats`, `techSupport.loading`  
 **API:** `GET /api/tech-support/stats`
 
 ---
@@ -362,7 +375,8 @@ Every page uses one of three layouts:
 - List of errors with timestamp, severity, service name, and message
 - "Resolve" button per error
 
-**API:** `GET /api/tech-support/errors`, `PATCH /api/tech-support/errors/:id/status`
+**Redux state:** `techSupport.errors`, `techSupport.loading`  
+**API:** `GET /api/tech-support/errors?level=&service=&status=&from=&to=`, `PATCH /api/tech-support/errors/:id/status`
 
 ---
 
@@ -391,6 +405,7 @@ Every page uses one of three layouts:
 - "Force Stop" button (asks for confirmation first)
 - Refreshes automatically every 30 seconds
 
+**Redux state:** `sessions.allSessions`, `sessions.loading`  
 **API:** `GET /api/sessions/all?status=ACTIVE`, `POST /api/sessions/:id/stop`
 
 ---
@@ -417,6 +432,7 @@ Every page uses one of three layouts:
 - Toggle to block or unblock
 - Delete button (asks for confirmation)
 
+**Redux state:** `admin.users`, `admin.loading`  
 **API:** `GET /api/admin/users`, `PATCH /api/admin/users/:id/role`, `PATCH /api/admin/users/:id/block`, `DELETE /api/admin/users/:id`
 
 ---
@@ -432,6 +448,7 @@ Every page uses one of three layouts:
 - "Commission" button to activate a newly created station
 - Inline price edit per station
 
+**Redux state:** `stations.list`, `stations.loading`  
 **API:** `GET /api/stations`, `POST /api/admin/stations`, `PATCH /api/admin/stations/:id/commission`, `PATCH /api/admin/stations/:id/tariff`
 
 ---
@@ -445,6 +462,7 @@ Every page uses one of three layouts:
 - List of stations with their current price (₽/kWh) and when it was last updated
 - Inline edit field + Save button per station
 
+**Redux state:** `stations.list`, `admin.loading`  
 **API:** `GET /api/stations`, `PATCH /api/admin/stations/:id/tariff`
 
 ---
