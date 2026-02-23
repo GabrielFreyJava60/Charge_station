@@ -1,611 +1,481 @@
 # Frontend Pages & Routes
 
-This document is the **shared contract between frontend and backend teams**.  
-Use it to synchronize page stubs, API endpoints, and integration status.  
-Changes to routes or API contracts must be agreed by both sides before implementation.
+This file is shared between the frontend and backend teams.
+It defines all pages, who can see them, what they show, and which API calls they make.
+Any changes to routes or API endpoints must be agreed by both teams first.
 
 ---
 
 ## Table of Contents
 
-1. [Route Map Summary](#route-map-summary)
+1. [Route Map](#route-map)
 2. [API Sync Status](#api-sync-status)
-3. [Auth Strategy](#auth-strategy)
-4. [Guard & Redirect Rules](#guard--redirect-rules)
-5. [Layout Groups](#layout-groups)
-6. [Public Pages](#public-pages)
-7. [Authenticated Pages (any role)](#authenticated-pages-any-role)
-8. [TECH_SUPPORT Pages](#tech_support-pages)
-9. [ADMIN Pages](#admin-pages)
-10. [Query Parameters](#query-parameters)
-11. [Page Titles](#page-titles)
-12. [State Persistence](#state-persistence)
-13. [Destructive Actions](#destructive-actions)
+3. [Auth — How Tokens Are Stored](#auth--how-tokens-are-stored)
+4. [Access Rules](#access-rules)
+5. [Page Layouts](#page-layouts)
+6. [Pages](#pages)
+7. [URL Filters](#url-filters)
+8. [Browser Tab Titles](#browser-tab-titles)
+9. [Filter Persistence](#filter-persistence)
+10. [Dangerous Actions](#dangerous-actions)
 
 ---
 
-## Route Map Summary
+## Route Map
 
-### Public (no auth)
+### Anyone (not logged in)
 
-| Route | Component | Notes |
+| URL | Page | Note |
 |---|---|---|
-| `/` | `Dashboard` | Redirects to `/login` if not authenticated |
-| `/login` | `Login` | Redirects to `/` (or `?redirect=`) if already authenticated |
-| `/register` | `Register` | — |
-| `/error/forbidden` | `ErrorForbidden` | 403 — access denied |
-| `/error/system` | `ErrorSystem` | 500 / backend unavailable |
-| `/*` | `NotFound` | 404 catch-all |
+| `/` | Dashboard | Redirects to `/login` if not logged in |
+| `/login` | Login | Redirects to `/` if already logged in |
+| `/register` | Sign Up | — |
+| `/error/forbidden` | Access Denied | Shown when user doesn't have permission |
+| `/error/system` | Server Error | Shown when the server is down or crashes |
+| `/*` | Not Found | Any URL that doesn't exist |
 
-### Authenticated (any role)
+> If the server returns a **401 error** (session expired) — the user is redirected to `/login`.
 
-| Route | Component | USER | TECH_SUPPORT | ADMIN |
+### Logged-in users (all roles)
+
+| URL | Page | USER | TECH_SUPPORT | ADMIN |
 |---|---|:---:|:---:|:---:|
-| `/stations` | `StationList` | ✓ | ✓ | ✓ |
-| `/stations/:stationId` | `StationDetail` | ✓ | ✓ | ✓ |
-| `/sessions/current` | `ChargingSession` | ✓ | ✓ | ✓ |
-| `/sessions/history` | `SessionHistory` | ✓ | ✓ | ✓ |
-| `/account/profile` | `Profile` | ✓ | ✓ | ✓ |
-| `/account/settings` | `Settings` | ✓ | ✓ | ✓ |
+| `/stations` | Station list | ✓ | ✓ | ✓ |
+| `/stations/:stationId` | Station details | ✓ | ✓ | ✓ |
+| `/sessions/current` | Current charging session | ✓ | ✓ | ✓ |
+| `/sessions/history` | Charging history | ✓ | ✓ | ✓ |
+| `/account/profile` | My profile | ✓ | ✓ | ✓ |
+| `/account/settings` | Settings | ✓ | ✓ | ✓ |
 
-### TECH_SUPPORT (authorized only)
+### Tech support only
 
-| Route | Component | Notes |
+| URL | Page | Note |
 |---|---|---|
-| `/support/dashboard` | `SupportDashboard` | Also accessible by ADMIN |
-| `/support/logs` | `ErrorLog` | Also accessible by ADMIN |
-| `/support/stations` | `StationManagement` | Also accessible by ADMIN |
-| `/support/sessions` | `SupportSessions` | Also accessible by ADMIN |
+| `/support/dashboard` | Operations overview | Also visible to ADMIN |
+| `/support/logs` | Error logs | Also visible to ADMIN |
+| `/support/stations` | Station controls | Also visible to ADMIN |
+| `/support/sessions` | Active sessions | Also visible to ADMIN |
 
-### ADMIN (authorized only)
+### Admin only
 
-| Route | Component | Notes |
-|---|---|---|
-| `/admin/dashboard` | `AdminDashboard` | ADMIN only |
-| `/admin/users` | `UserManagement` | ADMIN only |
-| `/admin/stations` | `StationAdmin` | ADMIN only |
-| `/admin/tariffs` | `TariffManagement` | ADMIN only |
+| URL | Page |
+|---|---|
+| `/admin/dashboard` | Admin home |
+| `/admin/users` | Manage users |
+| `/admin/stations` | Manage stations |
+| `/admin/tariffs` | Manage tariffs |
 
 ---
 
 ## API Sync Status
 
-Tracks which endpoints are implemented on each side.  
-Update this table when status changes. Agreed changes only.
+This table shows which API endpoints are ready on each side.
 
-**Legend:** `✓` done · `stub` placeholder returning mock data · `—` not started
+**`✓`** = done · **`stub`** = returns fake data for now · **`—`** = not started yet
 
-| Method | Endpoint | Frontend | Backend | Notes |
+| Method | URL | Frontend | Backend | What it does |
 |---|---|:---:|:---:|---|
-| `POST` | `/api/auth/register` | ✓ | stub | |
-| `POST` | `/api/auth/login` | ✓ | stub | returns `accessToken`, `role`, `userId` |
-| `POST` | `/api/auth/refresh` | ✓ | stub | |
-| `GET` | `/api/health` | ✓ | ✓ | basic health check |
-| `GET` | `/api/health?full=true` | ✓ | ✓ | invokes Lambda health check |
-| `GET` | `/api/stations` | ✓ | stub | query param `?status=` |
-| `GET` | `/api/stations/:id` | ✓ | stub | includes ports array |
-| `POST` | `/api/sessions/start` | ✓ | stub | `{ stationId, portId, batteryCapacityKwh, targetChargePercent }` |
-| `POST` | `/api/sessions/:id/stop` | ✓ | stub | |
-| `GET` | `/api/sessions/active` | ✓ | stub | current user only |
-| `GET` | `/api/sessions/history` | ✓ | stub | current user only |
-| `GET` | `/api/sessions/all` | ✓ | stub | TECH_SUPPORT+ADMIN, query param `?status=` |
-| `GET` | `/api/tech-support/errors` | ✓ | stub | filters: `level`, `service`, `status`, `from`, `to` |
-| `PATCH` | `/api/tech-support/errors/:id/status` | ✓ | stub | `{ status }` |
-| `PATCH` | `/api/tech-support/stations/:id/mode` | ✓ | stub | `{ status }` |
-| `GET` | `/api/tech-support/stats` | ✓ | stub | `{ activeSessions, totalStations, unresolvedErrors }` |
-| `GET` | `/api/admin/users` | ✓ | stub | |
-| `PATCH` | `/api/admin/users/:id/role` | ✓ | stub | `{ role }` |
-| `PATCH` | `/api/admin/users/:id/block` | ✓ | stub | `{ blocked }` |
-| `DELETE` | `/api/admin/users/:id` | ✓ | stub | |
-| `POST` | `/api/admin/stations` | ✓ | stub | create station |
-| `PATCH` | `/api/admin/stations/:id/commission` | ✓ | stub | NEW → ACTIVE |
-| `PATCH` | `/api/admin/stations/:id/tariff` | ✓ | stub | `{ tariffPerKwh }` |
+| `POST` | `/api/auth/register` | ✓ | stub | Create new account |
+| `POST` | `/api/auth/login` | ✓ | stub | Log in, get token |
+| `POST` | `/api/auth/refresh` | ✓ | stub | Renew expired token |
+| `GET` | `/api/health` | ✓ | ✓ | Check if server is alive |
+| `GET` | `/api/health?full=true` | ✓ | ✓ | Deep check including database and Lambda |
+| `GET` | `/api/stations` | ✓ | stub | Get all stations |
+| `GET` | `/api/stations/:id` | ✓ | stub | Get one station with its ports |
+| `POST` | `/api/sessions/start` | ✓ | stub | Start charging |
+| `POST` | `/api/sessions/:id/stop` | ✓ | stub | Stop charging |
+| `GET` | `/api/sessions/active` | ✓ | stub | Get the current user's active session |
+| `GET` | `/api/sessions/history` | ✓ | stub | Get the current user's past sessions |
+| `GET` | `/api/sessions/all` | ✓ | stub | Get all sessions (tech support / admin) |
+| `GET` | `/api/tech-support/errors` | ✓ | stub | Get error logs |
+| `PATCH` | `/api/tech-support/errors/:id/status` | ✓ | stub | Mark error as resolved |
+| `PATCH` | `/api/tech-support/stations/:id/mode` | ✓ | stub | Change station mode |
+| `GET` | `/api/tech-support/stats` | ✓ | stub | Get system stats |
+| `GET` | `/api/admin/users` | ✓ | stub | Get all users |
+| `PATCH` | `/api/admin/users/:id/role` | ✓ | stub | Change user role |
+| `PATCH` | `/api/admin/users/:id/block` | ✓ | stub | Block or unblock a user |
+| `DELETE` | `/api/admin/users/:id` | ✓ | stub | Delete a user |
+| `POST` | `/api/admin/stations` | ✓ | stub | Create a new station |
+| `PATCH` | `/api/admin/stations/:id/commission` | ✓ | stub | Put station into operation |
+| `PATCH` | `/api/admin/stations/:id/tariff` | ✓ | stub | Update station price |
 
 ---
 
-## Auth Strategy
+## Auth — How Tokens Are Stored
 
-### Current implementation (temporary)
+### Right now
 
-`accessToken` and `user` are stored in `localStorage` for simplicity.
+After login, the server sends back an **access token** (a string that proves who you are).
+We save it in `localStorage` — browser storage that any JavaScript on the page can read.
 
-```ts
-// TODO: replace with httpOnly cookie via BFF — agreed with backend team
-localStorage.setItem('accessToken', token)
-```
+This is simple to implement but not fully secure: if someone manages to inject
+malicious code into the page, they could steal the token.
+It is fine for this stage of the project.
 
-**Known limitation:** `localStorage` is accessible from JavaScript, making it
-vulnerable to XSS attacks. This is acceptable for the current development phase
-but must be replaced before any production deployment.
+### Planned improvement (needs backend + frontend to do together)
 
-### Planned implementation — BFF + httpOnly cookie
+Instead of giving the token to the frontend at all, the server will store the session
+in a **secure cookie** that JavaScript cannot read. The browser sends it automatically
+with every request — the frontend never touches it.
 
-Agreed approach: introduce a **Backend-For-Frontend (BFF)** layer that handles
-token exchange with AWS Cognito and stores the session as an `httpOnly` cookie.
+What needs to change on each side:
 
-```
-Browser  →  BFF (Node/Express)  →  AWS Cognito
-                    ↓
-     Set-Cookie: sessionId=...; HttpOnly; Secure; SameSite=Strict
-```
-
-**Requires changes on both sides — to be done in one coordinated iteration:**
-
-| Side | Change |
+| Side | What to do |
 |---|---|
-| **Backend** | `/auth/login` sets `httpOnly` cookie instead of returning token in body |
-| **Backend** | All protected routes read session from cookie, not `Authorization` header |
-| **Backend** | `/auth/logout` clears cookie via `Set-Cookie: ...; Max-Age=0` |
-| **Frontend** | Remove `localStorage.setItem('accessToken', ...)` |
-| **Frontend** | Remove `Authorization` header from Axios — browser sends cookie automatically |
-| **Frontend** | Add `withCredentials: true` to Axios instance |
-| **Frontend** | Remove token from `localStorage` on logout (already handled by server cookie) |
+| Backend | On login, set a secure cookie instead of returning the token in the response body |
+| Backend | On all protected routes, read the cookie instead of the Authorization header |
+| Backend | On logout, delete the cookie |
+| Frontend | Remove the code that saves the token to localStorage |
+| Frontend | Remove the code that adds the token to every request header |
+| Frontend | Add `withCredentials: true` to the HTTP client config |
 
-Until this is implemented, the `localStorage` approach remains with short-lived
-access tokens (15 min TTL configured in Cognito App Client).
+This will be done in one step by both teams together.
 
 ---
 
-## Guard & Redirect Rules
+## Access Rules
 
-| Condition | Behaviour |
+What happens when a user tries to open a page they shouldn't:
+
+| Situation | What happens |
 |---|---|
-| Not authenticated | → `/login?redirect={original_path}` |
-| Authenticated, wrong role | → `/error/forbidden` |
-| HTTP 401 from API | → clear tokens + `/login?redirect={path}` |
-| HTTP 403 from API | → `/error/forbidden` |
-| HTTP 5xx from API | → `/error/system` |
-| Authenticated on `/login` or `/register` | → `/` |
+| Not logged in | Redirected to `/login?redirect={page they tried to open}` |
+| Logged in but wrong role | Redirected to `/error/forbidden` |
+| Server says session expired (401) | Redirected to `/login?redirect={current page}` |
+| Server says no permission (403) | Redirected to `/error/forbidden` |
+| Server crashes (500+) | Redirected to `/error/system` |
+| Already logged in, opens `/login` | Redirected to `/` |
 
-Guards are enforced in two places:
-- **`ProtectedRoute`** component — wraps every authenticated route in `App.tsx`
-- **Axios response interceptor** — in `src/api/client.ts`
+These rules are enforced in two places:
+- `ProtectedRoute` component in `App.tsx` — checks role before rendering a page
+- HTTP client in `api/client.ts` — catches error responses from the server
 
 ---
 
-## Layout Groups
+## Page Layouts
 
-| Group | Layout shell | Routes |
+Every page uses one of three layouts:
+
+| Layout | What it looks like | Used by |
 |---|---|---|
-| Public (unauthenticated) | No navbar, centered card | `/login`, `/register` |
-| Error | Full-screen dark gradient, no navbar | `/error/*`, `/*` |
-| App | Sticky navbar + content padding | All authenticated routes |
+| Public | No navigation bar, centered card on plain background | `/login`, `/register` |
+| Error | Dark full-screen background, no navigation bar | `/error/*`, `/*` |
+| App | Sticky top navigation bar + page content | All logged-in pages |
 
 ---
 
-## Public Pages
+## Pages
 
 ---
 
 ### `/login` — Login
 
-**Component:** `src/auth/Login.tsx`  
-**Roles:** Public (no auth)  
-**Title:** `Sign In — EV Charge`
+**File:** `src/auth/Login.tsx`
 
-**UI elements:**
-- Email input
-- Password input
-- "Sign In" button (disabled while loading)
-- Link → `/register`
-- Dev-mode hint (pre-filled credentials in `NODE_ENV=development`)
-- Error message (inline, below the form)
+**What the user sees:**
+- Email and password fields
+- "Sign In" button (grayed out while loading)
+- Link to the registration page
+- Error message if login fails
+- Quick login hints in development mode
 
-**State:** `auth.loading`, `auth.error`  
-**API:** `POST /api/auth/login`  
-**On success:** stores `accessToken`, `user` in `localStorage` → navigate to `?redirect` or `/`  
-**On failure:** shows error from `auth.error`
+**After login:** user is taken to the page they originally tried to open, or to `/`
 
 ---
 
 ### `/register` — Sign Up
 
-**Component:** `src/auth/Register.tsx`  
-**Roles:** Public (no auth)  
-**Title:** `Sign Up — EV Charge`
+**File:** `src/auth/Register.tsx`
 
-**UI elements:**
-- Name, email, password, phone (optional) inputs
+**What the user sees:**
+- Name, email, password, and optional phone fields
 - "Create Account" button
-- Link → `/login`
-- Validation errors per field
+- Link back to login
+- Validation errors under each field
 
-**State:** `auth.loading`, `auth.error`  
-**API:** `POST /api/auth/register`  
-**On success:** navigate to `/login`
+**After registration:** user is taken to `/login`
 
 ---
 
 ### `/error/forbidden` — Access Denied
 
-**Component:** `src/pages/error/ErrorForbidden.tsx`  
-**Roles:** Public  
-**Title:** `Access Denied — EV Charge`
+**File:** `src/pages/error/ErrorForbidden.tsx`
 
-**UI elements:**
-- 403 code + icon
-- Short explanation
-- "Back to Home" button → `/`
+**What the user sees:**
+- "403" and an icon
+- Short message explaining they don't have access
+- "Back to Home" button
 
-**Triggered by:** `ProtectedRoute` (wrong role) or Axios 403
+**When it appears:** user tries to open a page their role doesn't allow
 
 ---
 
 ### `/error/system` — Server Error
 
-**Component:** `src/pages/error/ErrorSystem.tsx`  
-**Roles:** Public  
-**Title:** `Server Error — EV Charge`
+**File:** `src/pages/error/ErrorSystem.tsx`
 
-**UI elements:**
-- 500 code + icon
-- Short explanation
-- "Go Back" button (browser history) + "Home" button → `/`
+**What the user sees:**
+- "500" and an icon
+- Short message that something went wrong on the server
+- "Go Back" and "Home" buttons
 
-**Triggered by:** Axios interceptor on `status >= 500`
+**When it appears:** the server returns a 500-level error
 
 ---
 
 ### `/*` — Not Found
 
-**Component:** `src/pages/error/NotFound.tsx`  
-**Roles:** Public  
-**Title:** `Not Found — EV Charge`
+**File:** `src/pages/error/NotFound.tsx`
 
-**UI elements:**
-- 404 code + icon
-- "Back to Home" button → `/`
+**What the user sees:**
+- "404" and an icon
+- "Back to Home" button
 
----
-
-## Authenticated Pages (any role)
+**When it appears:** user opens a URL that doesn't exist
 
 ---
 
 ### `/` — Dashboard
 
-**Component:** `src/pages/Dashboard.tsx`  
-**Roles:** Any authenticated  
-**Title:** `Dashboard — EV Charge`
+**File:** `src/pages/Dashboard.tsx`  
+**Who can see it:** everyone logged in
 
-**UI elements:**
-- Greeting with username
-- Navigation cards grid (Stations, Charging, History; extra cards for TECH_SUPPORT / ADMIN)
-- **Health Check** section:
-  - "⚡ Health Check" button → `GET /api/health`
-  - "🔍 Full Health Check" button → `GET /api/health?full=true` (invokes Lambda)
-  - Response displayed as status badge + JSON `<pre>` block
-  - Last-checked timestamp
-
-**State:** `health.response`, `health.loading`, `health.error`, `health.lastChecked`  
-**API:** `GET /api/health`, `GET /api/health?full=true`
+**What the user sees:**
+- Greeting with their name
+- Cards linking to main sections (more cards shown for tech support and admin)
+- **Health Check** panel:
+  - "Health Check" button — asks the server if it's alive
+  - "Full Health Check" button — also checks the database and background services
+  - Shows the server's response and when the check was last run
 
 ---
 
 ### `/stations` — Station List
 
-**Component:** `src/pages/user/StationList.tsx`  
-**Roles:** Any authenticated  
-**Title:** `Stations — EV Charge`
+**File:** `src/pages/user/StationList.tsx`  
+**Who can see it:** everyone logged in
 
-**UI elements:**
-- Search input (by name / address) — query param `?search=`
-- Status filter tabs: All / Active / Maintenance / Offline — query param `?status=`
-- Station cards grid:
-  - Name, address
-  - Status badge (color-coded)
-  - Available ports count
-  - Power (kW) + tariff (₽/kWh)
-  - "View" link → `/stations/:stationId`
-- Empty state message
+**What the user sees:**
+- Search box (by name or address)
+- Filter tabs: All / Active / Maintenance / Offline
+- Cards for each station showing name, address, status, available ports, price
+- Each card links to that station's detail page
 
-**State:** `stations.list`, `stations.loading`, `stations.error`  
-**API:** `GET /api/stations?status=`  
-**Filter persistence:** search + status restored from URL on back-navigation
+**API:** `GET /api/stations`
 
 ---
 
-### `/stations/:stationId` — Station Detail
+### `/stations/:stationId` — Station Details
 
-**Component:** `src/pages/user/StationDetail.tsx`  
-**Roles:** Any authenticated  
-**Title:** `{Station Name} — EV Charge`
+**File:** `src/pages/user/StationDetail.tsx`  
+**Who can see it:** everyone logged in
 
-**UI elements:**
-- Station header: name, address, status badge, tariff
-- Port list:
-  - Port ID, connector type, power (kW), status (Available / Busy / Error)
-  - "Start Charging" button (only for Available ports)
-- Start Charging modal / inline form:
-  - Battery capacity (kWh) input
-  - Target charge % slider
-  - Confirm button
-- Back link → `/stations`
+**What the user sees:**
+- Station name, address, status, and price
+- List of charging ports with their status
+- "Start Charging" button on available ports
+- A small form to enter battery size and target charge level
+- Back link to the station list
 
-**State:** `stations.currentStation`, `sessions.activeSession`, `sessions.loading`, `sessions.error`  
-**API:**  
-- `GET /api/stations/:id`  
-- `POST /api/sessions/start` → on success navigate to `/sessions/current`
+**API:** `GET /api/stations/:id`, `POST /api/sessions/start`  
+**After starting:** user is taken to `/sessions/current`
 
 ---
 
 ### `/sessions/current` — Current Charging Session
 
-**Component:** `src/pages/user/ChargingSession.tsx`  
-**Roles:** Any authenticated  
-**Title:** `Charging in Progress — EV Charge`
+**File:** `src/pages/user/ChargingSession.tsx`  
+**Who can see it:** everyone logged in
 
-**UI elements:**
-- Progress ring / bar (% charged)
-- Energy consumed (kWh)
+**What the user sees:**
+- Charging progress (percentage)
+- Energy consumed so far (kWh)
 - Current cost (₽)
-- Elapsed time
-- Estimated time remaining
-- "Stop Charging" button (confirm dialog: "Stop session?")
-- Polling: auto-refresh every 10 s via `usePolling` hook
-- Empty state if no active session: link → `/stations`
+- Time elapsed and estimated time remaining
+- "Stop Charging" button (asks for confirmation first)
+- If no session is active: message with a link to find a station
 
-**State:** `sessions.activeSession`, `sessions.loading`, `sessions.error`  
-**API:**  
-- `GET /api/sessions/active` (on mount + polling)  
-- `POST /api/sessions/:id/stop`
+**The page refreshes automatically every 10 seconds.**
+
+**API:** `GET /api/sessions/active`, `POST /api/sessions/:id/stop`
 
 ---
 
-### `/sessions/history` — Session History
+### `/sessions/history` — Charging History
 
-**Component:** `src/pages/user/SessionHistory.tsx`  
-**Roles:** Any authenticated  
-**Title:** `Session History — EV Charge`
+**File:** `src/pages/user/SessionHistory.tsx`  
+**Who can see it:** everyone logged in
 
-**UI elements:**
-- Date range filter — query params `?from=` `?to=`
-- Status filter — query param `?status=`
-- Session list (most recent first):
-  - Station name, port, date/time
-  - Energy (kWh), cost (₽), duration
-  - Status badge (Completed / Stopped / Error)
-- Total summary row (total kWh, total ₽)
-- Empty state message
+**What the user sees:**
+- Date range and status filters
+- List of past sessions (newest first) with station, energy, cost, duration, and status
+- Total summary at the bottom
 
-**State:** `sessions.history`, `sessions.loading`  
 **API:** `GET /api/sessions/history`
 
 ---
 
-### `/account/profile` — Profile
+### `/account/profile` — My Profile
 
-**Component:** `src/pages/account/Profile.tsx`  
-**Roles:** Any authenticated  
-**Title:** `Profile — EV Charge`
+**File:** `src/pages/account/Profile.tsx`  
+**Who can see it:** everyone logged in
 
-**UI elements:**
-- Avatar initials + email + role badge
-- User details: email, User ID, role
-- "Support Request" link / form (optional)
-- "Sign Out" button (confirm dialog: "Sign out?")
-
-**State:** `auth.user`  
-**API:** none (data from local auth context)
+**What the user sees:**
+- Their avatar (initials), email, and role
+- Account details
+- "Sign Out" button
 
 ---
 
 ### `/account/settings` — Settings
 
-**Component:** `src/pages/account/Settings.tsx`  
-**Roles:** Any authenticated  
-**Title:** `Settings — EV Charge`
+**File:** `src/pages/account/Settings.tsx`  
+**Who can see it:** everyone logged in
 
-**UI elements:**
-- Toggle: Email notifications
-- Toggle: Session reminders
-- Toggle: Cost alerts
-- (Future) Preferred tariff view
-- Auto-save on toggle (optimistic update)
-
-**State:** local state (or future `settings` Redux slice)  
-**API:** (future) `PATCH /api/account/settings`
+**What the user sees:**
+- Toggle for email notifications
+- Toggle for session reminders
+- Toggle for cost alerts
 
 ---
 
-## TECH_SUPPORT Pages
+### `/support/dashboard` — Operations Overview
 
-> All `/support/*` routes are accessible by both `TECH_SUPPORT` and `ADMIN` roles.
+**File:** `src/pages/support/SupportDashboard.tsx`  
+**Who can see it:** TECH_SUPPORT, ADMIN
 
----
+**What the user sees:**
+- Three counters: active sessions, total stations, unresolved errors
+- Quick links to logs, station controls, and active sessions
 
-### `/support/dashboard` — Operations Dashboard
-
-**Component:** `src/pages/support/SupportDashboard.tsx`  
-**Roles:** TECH_SUPPORT, ADMIN  
-**Title:** `Operations Dashboard — EV Charge`
-
-**UI elements:**
-- KPI cards: Active Sessions, Total Stations, Unresolved Errors
-- Quick-link cards → `/support/logs`, `/support/stations`, `/support/sessions`
-- (Future) Recent errors list (last 5)
-- (Future) System load chart
-
-**State:** `techSupport.stats`, `techSupport.loading`  
 **API:** `GET /api/tech-support/stats`
 
 ---
 
 ### `/support/logs` — Error Logs
 
-**Component:** `src/pages/techSupport/ErrorLog.tsx`  
-**Roles:** TECH_SUPPORT, ADMIN  
-**Title:** `Error Logs — EV Charge`
+**File:** `src/pages/techSupport/ErrorLog.tsx`  
+**Who can see it:** TECH_SUPPORT, ADMIN
 
-**Query params:** `?level=ERROR|WARN` · `?service=` · `?status=open|resolved` · `?from=` · `?to=`
+**What the user sees:**
+- Filters by level, service, status, and date range
+- List of errors with timestamp, severity, service name, and message
+- "Resolve" button per error
 
-**UI elements:**
-- Filter bar: level, service, status, date range
-- Error log table / cards:
-  - Timestamp, level badge, service, message
-  - Status badge (Open / Resolved)
-  - "Resolve" button → `PATCH /api/tech-support/errors/:id/status`
-- Pagination or infinite scroll
-
-**State:** `techSupport.errors`, `techSupport.loading`, `techSupport.error`  
-**API:**  
-- `GET /api/tech-support/errors?level=&service=&status=&from=&to=`  
-- `PATCH /api/tech-support/errors/:id/status`
+**API:** `GET /api/tech-support/errors`, `PATCH /api/tech-support/errors/:id/status`
 
 ---
 
-### `/support/stations` — Station Management
+### `/support/stations` — Station Controls
 
-**Component:** `src/pages/techSupport/StationManagement.tsx`  
-**Roles:** TECH_SUPPORT, ADMIN  
-**Title:** `Station Management — EV Charge`
+**File:** `src/pages/techSupport/StationManagement.tsx`  
+**Who can see it:** TECH_SUPPORT, ADMIN
 
-**UI elements:**
-- Station list with current mode/status
-- Per-station mode selector: Active / Maintenance / Offline
-- "Apply" button per row → `PATCH /api/tech-support/stations/:id/mode`
-- Status change confirmation dialog: "Set station to Maintenance?"
+**What the user sees:**
+- List of all stations with their current status
+- Dropdown per station to switch mode: Active / Maintenance / Offline
+- Confirmation before changing mode
 
-**State:** `stations.list`, `stations.loading`  
-**API:**  
-- `GET /api/stations`  
-- `PATCH /api/tech-support/stations/:id/mode`
+**API:** `GET /api/stations`, `PATCH /api/tech-support/stations/:id/mode`
 
 ---
 
-### `/support/sessions` — Active Sessions Management
+### `/support/sessions` — Active Sessions
 
-**Component:** `src/pages/support/SupportSessions.tsx`  
-**Roles:** TECH_SUPPORT, ADMIN  
-**Title:** `Active Sessions — EV Charge`
+**File:** `src/pages/support/SupportSessions.tsx`  
+**Who can see it:** TECH_SUPPORT, ADMIN
 
-**UI elements:**
-- Active session list (all users):
-  - Session ID, station, port, user email
-  - Energy consumed (kWh), cost (₽)
-  - Status badge
-  - "Force Stop" button — confirm dialog: "Force stop this session?"
-- Auto-refresh every 30 s
-- Empty state: "No active sessions"
+**What the user sees:**
+- List of all currently active sessions across all users
+- For each: session ID, station, port, energy, cost, status
+- "Force Stop" button (asks for confirmation first)
+- Refreshes automatically every 30 seconds
 
-**State:** `sessions.allSessions`, `sessions.loading`, `sessions.error`  
-**API:**  
-- `GET /api/sessions/all?status=ACTIVE`  
-- `POST /api/sessions/:id/stop` (force stop)
+**API:** `GET /api/sessions/all?status=ACTIVE`, `POST /api/sessions/:id/stop`
 
 ---
 
-## ADMIN Pages
+### `/admin/dashboard` — Admin Home
+
+**File:** `src/pages/admin/AdminDashboard.tsx`  
+**Who can see it:** ADMIN only
+
+**What the user sees:**
+- Navigation cards to all admin sections: users, stations, tariffs, operations
 
 ---
 
-### `/admin/dashboard` — Admin Dashboard
+### `/admin/users` — Manage Users
 
-**Component:** `src/pages/admin/AdminDashboard.tsx`  
-**Roles:** ADMIN only  
-**Title:** `Admin Dashboard — EV Charge`
+**File:** `src/pages/admin/UserManagement.tsx`  
+**Who can see it:** ADMIN only
 
-**UI elements:**
-- Navigation cards: User Management, Stations Management, Tariffs, Operations Dashboard
-- (Future) System-wide KPIs: total users, total sessions today, revenue today
+**What the user sees:**
+- Filters by role and blocked status
+- Table of users with email, role, and blocked status
+- Dropdown to change a user's role
+- Toggle to block or unblock
+- Delete button (asks for confirmation)
 
-**State:** none (static navigation)
-
----
-
-### `/admin/users` — User Management
-
-**Component:** `src/pages/admin/UserManagement.tsx`  
-**Roles:** ADMIN only  
-**Title:** `User Management — EV Charge`
-
-**Query params:** `?role=USER|TECH_SUPPORT|ADMIN` · `?blocked=true|false`
-
-**UI elements:**
-- Filter bar: role, blocked status, search by email
-- User table:
-  - Email, role badge, blocked status, created date
-  - Role selector dropdown → `PATCH /api/admin/users/:id/role`
-  - Block/Unblock toggle → `PATCH /api/admin/users/:id/block`
-  - Delete button — confirm dialog: "Delete user {email}? This cannot be undone."
-
-**State:** `admin.users`, `admin.loading`, `admin.error`  
-**API:**  
-- `GET /api/admin/users`  
-- `PATCH /api/admin/users/:id/role`  
-- `PATCH /api/admin/users/:id/block`  
-- `DELETE /api/admin/users/:id`
+**API:** `GET /api/admin/users`, `PATCH /api/admin/users/:id/role`, `PATCH /api/admin/users/:id/block`, `DELETE /api/admin/users/:id`
 
 ---
 
-### `/admin/stations` — Stations Management
+### `/admin/stations` — Manage Stations
 
-**Component:** `src/pages/admin/StationAdmin.tsx`  
-**Roles:** ADMIN only  
-**Title:** `Stations Management — EV Charge`
+**File:** `src/pages/admin/StationAdmin.tsx`  
+**Who can see it:** ADMIN only
 
-**UI elements:**
-- Station list with status and commission state
-- "Create Station" button → inline form / modal:
-  - Name, address, lat/lon, port count, power (kW), tariff (₽/kWh)
-  - Submit → `POST /api/admin/stations`
-- "Commission" button (NEW → ACTIVE) — confirm dialog: "Put station into operation?"
-  - → `PATCH /api/admin/stations/:id/commission`
-- "Update Tariff" inline edit → `PATCH /api/admin/stations/:id/tariff`
+**What the user sees:**
+- List of all stations
+- "Create Station" button with a form (name, address, ports, power, price)
+- "Commission" button to activate a newly created station
+- Inline price edit per station
 
-**State:** `stations.list`, `stations.loading`  
-**API:**  
-- `GET /api/stations`  
-- `POST /api/admin/stations`  
-- `PATCH /api/admin/stations/:id/commission`  
-- `PATCH /api/admin/stations/:id/tariff`
+**API:** `GET /api/stations`, `POST /api/admin/stations`, `PATCH /api/admin/stations/:id/commission`, `PATCH /api/admin/stations/:id/tariff`
 
 ---
 
-### `/admin/tariffs` — Tariffs Management
+### `/admin/tariffs` — Manage Tariffs
 
-**Component:** `src/pages/admin/TariffManagement.tsx`  
-**Roles:** ADMIN only  
-**Title:** `Tariffs Management — EV Charge`
+**File:** `src/pages/admin/TariffManagement.tsx`  
+**Who can see it:** ADMIN only
 
-**UI elements:**
-- Tariff list per station (name, current rate ₽/kWh, last updated)
-- Inline edit: tariff value input + "Save" button per row
-- (Future) Time-of-day tariff schedules
-- (Future) Special tariff for VIP users
+**What the user sees:**
+- List of stations with their current price (₽/kWh) and when it was last updated
+- Inline edit field + Save button per station
 
-**State:** `stations.list`, `admin.loading`  
-**API:**  
-- `GET /api/stations`  
-- `PATCH /api/admin/stations/:id/tariff`
+**API:** `GET /api/stations`, `PATCH /api/admin/stations/:id/tariff`
 
 ---
 
-## Query Parameters
+## URL Filters
 
-| Route | Param | Values | Notes |
-|---|---|---|---|
-| `/stations` | `search` | string | Filter by name/address |
-| `/stations` | `status` | `ACTIVE\|MAINTENANCE\|OFFLINE` | Filter by station status |
-| `/sessions/history` | `from` | ISO date | Start of date range |
-| `/sessions/history` | `to` | ISO date | End of date range |
-| `/sessions/history` | `status` | `COMPLETED\|STOPPED\|ERROR` | — |
-| `/support/logs` | `level` | `ERROR\|WARN\|INFO` | Log level filter |
-| `/support/logs` | `service` | string | Microservice name |
-| `/support/logs` | `status` | `open\|resolved` | — |
-| `/support/logs` | `from` | ISO date | — |
-| `/support/logs` | `to` | ISO date | — |
-| `/admin/users` | `role` | `USER\|TECH_SUPPORT\|ADMIN` | — |
-| `/admin/users` | `blocked` | `true\|false` | — |
-| `/login` | `redirect` | URL-encoded path | Return destination after login |
+Some pages support filters passed in the URL (e.g. `/stations?status=ACTIVE`).
+This lets users bookmark filtered views and share links.
+
+| Page | Param | Example values |
+|---|---|---|
+| `/stations` | `search` | any text |
+| `/stations` | `status` | `ACTIVE`, `MAINTENANCE`, `OFFLINE` |
+| `/sessions/history` | `from` | `2025-01-01` |
+| `/sessions/history` | `to` | `2025-12-31` |
+| `/sessions/history` | `status` | `COMPLETED`, `STOPPED`, `ERROR` |
+| `/support/logs` | `level` | `ERROR`, `WARN`, `INFO` |
+| `/support/logs` | `service` | service name |
+| `/support/logs` | `status` | `open`, `resolved` |
+| `/support/logs` | `from` / `to` | date range |
+| `/admin/users` | `role` | `USER`, `TECH_SUPPORT`, `ADMIN` |
+| `/admin/users` | `blocked` | `true`, `false` |
+| `/login` | `redirect` | the page to go back to after login |
 
 ---
 
-## Page Titles
+## Browser Tab Titles
 
-Browser `<title>` pattern: `{Page Name} — EV Charge`
+Pattern: `{Page Name} — EV Charge`
 
-| Route | Title |
+| Page | Title |
 |---|---|
 | `/login` | `Sign In — EV Charge` |
 | `/register` | `Sign Up — EV Charge` |
@@ -630,29 +500,28 @@ Browser `<title>` pattern: `{Page Name} — EV Charge`
 
 ---
 
-## State Persistence
+## Filter Persistence
 
-| Route | What is preserved | How |
-|---|---|---|
-| `/stations` | Search text + status filter | URL query params |
-| `/sessions/history` | Date range + status filter | URL query params |
-| `/support/logs` | All filters | URL query params |
-| `/admin/users` | Role + blocked filters | URL query params |
-| `/stations/:id` | Scroll position | Browser default |
+When a user goes back to a page, their filters are still there because they are stored in the URL.
 
-When a user navigates from `/stations/:id` back to `/stations`, filters are restored from the URL, so no search state is lost.
+| Page | What is saved |
+|---|---|
+| `/stations` | Search text and status filter |
+| `/sessions/history` | Date range and status filter |
+| `/support/logs` | All filters |
+| `/admin/users` | Role and blocked filters |
 
 ---
 
-## Destructive Actions
+## Dangerous Actions
 
-All irreversible operations require a confirmation dialog (`window.confirm` or custom modal) before calling the API.
+These actions cannot be undone. The user must confirm before they happen.
 
-| Action | Page | Confirmation text |
+| Action | Page | Confirmation message |
 |---|---|---|
 | Stop charging | `/sessions/current` | "Stop the current session?" |
-| Force stop session | `/support/sessions` | "Force stop this session?" |
+| Force stop a session | `/support/sessions` | "Force stop this session?" |
 | Set station to Maintenance | `/support/stations` | "Set station to Maintenance? Active sessions may be interrupted." |
-| Delete user | `/admin/users` | "Delete user {email}? This cannot be undone." |
-| Block user | `/admin/users` | "Block user {email}?" |
-| Commission station | `/admin/stations` | "Put this station into operation?" |
+| Delete a user | `/admin/users` | "Delete user {email}? This cannot be undone." |
+| Block a user | `/admin/users` | "Block user {email}?" |
+| Commission a station | `/admin/stations` | "Put this station into operation?" |
