@@ -1,6 +1,7 @@
-# Frontend — React SPA (Easy Charge)
+# Frontend — EV Charge (React SPA)
 
-A TypeScript single-page application for managing electric vehicle charging stations. Built with React 19, Vite 7, Redux Toolkit, Tailwind CSS, and a structured logging/config layer aligned with the team repository.
+A TypeScript single-page application for managing electric vehicle charging stations.  
+Built with React 19, Vite 7, Redux Toolkit 2, Tailwind CSS 3.4, and a structured logging/config layer.
 
 ---
 
@@ -11,10 +12,10 @@ A TypeScript single-page application for managing electric vehicle charging stat
 | **React** | 19 | UI library, component-based SPA |
 | **TypeScript** | 5.9 | Static typing, safer refactoring |
 | **Vite** | 7 | Build tool and dev server (ESM-native) |
-| **@vitejs/plugin-react-swc** | 4 | SWC compiler — 20× faster than Babel HMR |
+| **@vitejs/plugin-react-swc** | 4 | SWC compiler — ~20× faster than Babel HMR |
 | **React Router** | v6 | Client-side routing with protected routes |
 | **Redux Toolkit** | 2 | Global state management |
-| **Axios** | 1.13 | HTTP client with JWT/401 interceptors |
+| **Axios** | 1.13 | HTTP client with request/response interceptors |
 | **Tailwind CSS** | 3.4 | Utility-first CSS, mobile-first responsive design |
 
 ---
@@ -70,18 +71,18 @@ A TypeScript single-page application for managing electric vehicle charging stat
 
 ## Page Wireframes
 
-Schematic layouts for all key pages across three breakpoints.
+Schematic layouts for key pages across three breakpoints.
 
 ### Login / Register
 
 ```
 DESKTOP (≥ 1024px)              TABLET (768–1023px)          MOBILE (< 768px)
 ─────────────────────────────   ───────────────────────────   ────────────────────
-                                                              
+
   ┌─── bg gradient ──────────┐    ┌─── bg gradient ─────┐     ┌─── bg gradient ──┐
   │                          │    │                     │     │                  │
   │   ┌───────────────────┐  │    │  ┌───────────────┐  │     │  ┌────────────┐  │
-  │   │   ⚡  Easy Charge  │  │    │  │ ⚡ Easy Charge │  │     │  │ ⚡ EasyChg │  │
+  │   │   ⚡  EV Charge   │  │    │  │  ⚡ EV Charge │  │     │  │ ⚡ EVCharge│  │
   │   │                   │  │    │  │               │  │     │  │            │  │
   │   │  Email __________ │  │    │  │ Email _______ │  │     │  │ Email ___  │  │
   │   │  Password _______ │  │    │  │ Password ___  │  │     │  │ Password _ │  │
@@ -103,7 +104,7 @@ DESKTOP (≥ 1024px)              TABLET (768–1023px)          MOBILE (< 768px
 DESKTOP (≥ 1024px)
 ──────────────────────────────────────────────────────────────────────
 ┌──────────────────────────────────────────────────────────────────┐
-│ ⚡ Easy Charge  │ Home  Stations  Charging  History │ user@ [OUT]│  ← sticky navbar
+│ ⚡ EV Charge  │ Stations  Charging  History │ user@test [Sign Out]│  ← sticky navbar
 ├──────────────────────────────────────────────────────────────────┤
 │ max-w-7xl mx-auto px-8                                           │
 │                                                                  │
@@ -113,7 +114,6 @@ DESKTOP (≥ 1024px)
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
 │  │ ⚡ gradient  │  │ 📊 gradient  │  │ 🕐 gradient  │           │
 │  │  Stations   │  │  Charging    │  │  History     │           │
-│  │  nav link   │  │  nav link    │  │  nav link    │           │
 │  └──────────────┘  └──────────────┘  └──────────────┘           │
 │           3-column glass cards (lg:grid-cols-3)                  │
 │                                                                  │
@@ -131,7 +131,7 @@ DESKTOP (≥ 1024px)
 TABLET (768–1023px)                    MOBILE (< 768px)
 ────────────────────────────────────   ────────────────────────────
 ┌──────────────────────────────────┐   ┌────────────────────────┐
-│ ⚡  Home Stations History │ ☰   │   │ ⚡             │  ☰    │  ← hamburger
+│ ⚡  Stations Charging │ ☰       │   │ ⚡              │  ☰   │  ← hamburger
 ├──────────────────────────────────┤   ├────────────────────────┤
 │  Welcome, username 👋            │   │  Welcome, username 👋  │
 │  ┌────────────┐  ┌────────────┐  │   │  ┌──────────────────┐  │
@@ -178,10 +178,7 @@ TABLET (768–1023px)            MOBILE (< 768px)
   │ 📍 Address │ │ 📍 Addr  │   │ 📍 Ulitsa Lenina 1        │
   │ ports pwr $│ │ports pwr$│   │ Ports: 4  Power: 50kW $0.25│
   └────────────┘ └──────────┘   └────────────────────────────┘
-  2-column (md:grid-cols-2)     ┌────────────────────────────┐
-                                │ Station Beta   [MAINT.]    │
-                                └────────────────────────────┘
-                                1-column full-width cards
+  2-column (md:grid-cols-2)     1-column full-width cards
 ```
 
 ---
@@ -203,7 +200,7 @@ DESKTOP (≥ 1024px)
 │  │  4 ports │ │ 50 kW    │ │ $0.25    │ │ 55.7°N   │           │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
 │                                                                  │
-│  Battery capacity: [60] kWh                                      │
+│  Battery capacity: [60] kWh    Target charge: [80] %            │
 │                                                                  │
 │  Charging Ports                                                  │
 │  ┌────────────────────┐  ┌────────────────────┐                 │
@@ -218,7 +215,7 @@ MOBILE (< 768px)
   Station Alpha      [ACTIVE]
   📍 Ulitsa Lenina 1
   ┌──────────┐ ┌──────────┐
-  │  4 ports │ │ 50 kW    │    2 cols on mobile
+  │  4 ports │ │ 50 kW    │    2 cols
   └──────────┘ └──────────┘
   ┌──────────┐ ┌──────────┐
   │  $0.25   │ │  55.7°N  │
@@ -228,14 +225,11 @@ MOBILE (< 768px)
   │ Port #1  [FREE]        │
   │ [ Start Charging ]     │    full width
   └────────────────────────┘
-  ┌────────────────────────┐
-  │ Port #2  [CHARGING]    │
-  └────────────────────────┘
 ```
 
 ---
 
-### Charging Session (/charging)
+### Current Charging Session (/sessions/current)
 
 ```
 DESKTOP & TABLET                        MOBILE (< 768px)
@@ -270,16 +264,16 @@ DESKTOP & TABLET                        MOBILE (< 768px)
 │         max-w-2xl centered     │     │    full width              │
 └─────────────────────────────────┘     └────────────────────────────┘
 
-  ↑ SVG progress ring color:
+  SVG progress ring color:
     < 50% → yellow (#eab308)
     50–80% → blue (#3b82f6)
     > 80% → green (#22c55e)
-  Polled every 3 seconds via usePolling hook
+  Auto-refreshes every 10 s via usePolling hook
 ```
 
 ---
 
-### Session History (/history)
+### Session History (/sessions/history)
 
 ```
 DESKTOP (≥ 1024px)
@@ -293,7 +287,7 @@ DESKTOP (≥ 1024px)
 │  │ Session  │ Station  │  Status   │Charge │ kWh    │  Cost  │  │
 │  ├──────────┼──────────┼───────────┼───────┼────────┼────────┤  │
 │  │ abc123   │ Alpha    │[COMPLETED]│ 100%  │ 24.5   │ $6.13  │  │
-│  │ def456   │ Beta     │[INTERRUPT]│  62%  │ 15.2   │ $3.80  │  │
+│  │ def456   │ Beta     │[STOPPED]  │  62%  │ 15.2   │ $3.80  │  │
 │  └──────────┴──────────┴───────────┴───────┴────────┴────────┘  │
 │  full-width table, horizontal scroll on mobile                   │
 └──────────────────────────────────────────────────────────────────┘
@@ -311,15 +305,15 @@ MOBILE (< 768px)
 
 ---
 
-### Error Log — TECH_SUPPORT (/tech/errors)
+### Error Logs — TECH_SUPPORT (/support/logs)
 
 ```
 DESKTOP (≥ 1024px)
 ──────────────────────────────────────────────────────────────────────
 ┌──────────────────────────────────────────────────────────────────┐
-│ navbar (with Errors | Manage | Stats links for TECH_SUPPORT)     │
+│ navbar (Stations | Charging | History | Dashboard | Logs | ...)  │
 ├──────────────────────────────────────────────────────────────────┤
-│  Error Log                                                       │
+│  Error Logs                                                      │
 │  [ Level ▼ ]  [ Status ▼ ]  [ Service ▼ ]  [ Refresh ↻ ]       │
 │                                                                  │
 │  ┌──────────┬────────┬────────────┬─────────┬──────────────────┐ │
@@ -328,23 +322,13 @@ DESKTOP (≥ 1024px)
 │  │ 14:32:01 │[ERROR] │ simulator  │ Port ERR│ [ NEW      ▼ ]  │ │
 │  │ 14:30:44 │[WARN]  │ session_svc│ Timeout │ [IN_PROG   ▼ ]  │ │
 │  └──────────┴────────┴────────────┴─────────┴──────────────────┘ │
-│  Status column has inline <select> for NEW/IN_PROGRESS/RESOLVED  │
+│  Status column has inline select: NEW / IN_PROGRESS / RESOLVED   │
 └──────────────────────────────────────────────────────────────────┘
-
-MOBILE (< 768px)
-────────────────────────────────────
-  [ Level ▼ ] [ Status ▼ ]
-  [ Service ▼ ]         [ ↻ ]
-
-  ┌──────────────────────────────┐
-  │ ← horizontal scroll →       │
-  │ Time │ Lvl │ Svc │ Status   │
-  └──────────────────────────────┘
 ```
 
 ---
 
-### System Stats — TECH_SUPPORT (/tech/stats)
+### Operations Dashboard — TECH_SUPPORT (/support/dashboard)
 
 ```
 DESKTOP (≥ 1024px)
@@ -352,31 +336,19 @@ DESKTOP (≥ 1024px)
 ┌──────────────────────────────────────────────────────────────────┐
 │ navbar                                                           │
 ├──────────────────────────────────────────────────────────────────┤
-│  System Statistics               Auto-refreshes every 10 s      │
+│  Operations Dashboard                                            │
 │                                                                  │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │
-│  │     12     │ │    85%     │ │      2     │ │     47     │   │
-│  │  Active    │ │   Port     │ │  Faulty    │ │  Total     │   │
-│  │  Sessions  │ │ Occupancy  │ │  Stations  │ │  Stations  │   │
-│  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │
-│                   4-column KPI cards                             │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐                   │
+│  │     12     │ │     47     │ │      3     │                   │
+│  │  Active    │ │   Total    │ │ Unresolved │                   │
+│  │  Sessions  │ │  Stations  │ │   Errors   │                   │
+│  └────────────┘ └────────────┘ └────────────┘                   │
+│                   3-column KPI cards                             │
 │                                                                  │
-│  Stations by Status                                              │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │ ACTIVE   │ │ MAINT.   │ │ OUT_ORD  │ │   NEW    │           │
-│  │   40     │ │    4     │ │    2     │ │    1     │           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                         │
+│  │  Logs →  │ │Stations→ │ │Sessions→ │                         │
+│  └──────────┘ └──────────┘ └──────────┘                         │
 └──────────────────────────────────────────────────────────────────┘
-
-MOBILE (< 768px)
-────────────────────────────────────
-  System Statistics
-  ┌────────────┐  ┌────────────┐
-  │  12 Active │  │  85% Ports │   2 cols
-  └────────────┘  └────────────┘
-  ┌────────────┐  ┌────────────┐
-  │  2 Faulty  │  │ 47 Total   │
-  └────────────┘  └────────────┘
 ```
 
 ---
@@ -387,7 +359,7 @@ MOBILE (< 768px)
 DESKTOP (≥ 1024px)
 ──────────────────────────────────────────────────────────────────────
 ┌──────────────────────────────────────────────────────────────────┐
-│ navbar (with Errors | Manage | Stats | Users | Stations | Tariffs)│
+│ navbar (... | Admin | Users | Tariffs)                           │
 ├──────────────────────────────────────────────────────────────────┤
 │  User Management                                                 │
 │                                                                  │
@@ -398,7 +370,7 @@ DESKTOP (≥ 1024px)
 │ │ tech@t.com   │ [TECH_SUPP  ▼ ] │  Active      │[Block][Del] │ │
 │ │ admin@t.com  │ [ADMIN      ▼ ] │  Active      │[Block][Del] │ │
 │ └──────────────┴──────────────────┴──────────────┴─────────────┘ │
-│  Role column: inline <select> USER/TECH_SUPPORT/ADMIN            │
+│  Role column: inline select USER / TECH_SUPPORT / ADMIN          │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -413,23 +385,19 @@ DESKTOP (≥ 1024px)
 │ navbar                                                           │
 ├──────────────────────────────────────────────────────────────────┤
 │  Station Administration                                          │
-│  [ + Create New Station ▼ ]  ← toggle form                      │
+│  [ + Create New Station ]  ← toggle form                        │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  ┌────────────────────┐  ┌────────────────────┐          │   │
 │  │  │ Name _____________ │  │ Address ___________ │          │   │
 │  │  ├────────────────────┤  ├────────────────────┤          │   │
-│  │  │ Latitude _________ │  │ Longitude _________ │          │   │
-│  │  ├────────────────────┤  ├────────────────────┤          │   │
 │  │  │ Ports ____________ │  │ Power (kW) ________ │          │   │
 │  │  ├────────────────────┴──┴────────────────────┤          │   │
-│  │  │  Tariff ($/kWh) __________________________ │          │   │
+│  │  │  Tariff (₽/kWh) _________________________  │          │   │
 │  │  │  [ Create Station ]                         │          │   │
 │  │  └────────────────────────────────────────────┘          │   │
-│  │  2-column form grid (md:grid-cols-2)                      │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
-│  Existing Stations                                               │
 │  ┌─────────────┬────────┬────────┬───────┬───────────────────┐  │
 │  │ Name        │ Status │ Ports  │ Power │     Actions       │  │
 │  ├─────────────┼────────┼────────┼───────┼───────────────────┤  │
@@ -454,7 +422,7 @@ DESKTOP (≥ 1024px)
 │  │ Alpha           │  ACTIVE  │ $0.25    │ [ Edit ]         │   │
 │  │ Beta (editing)  │  ACTIVE  │ [ 0.30 ] │ [Save] [Cancel]  │   │
 │  └─────────────────┴──────────┴──────────┴──────────────────┘   │
-│  Tariff column: click Edit → inline <input> → Save/Cancel       │
+│  Tariff column: click Edit → inline input → Save / Cancel       │
 ```
 
 ---
@@ -470,7 +438,7 @@ Tailwind CSS mobile-first breakpoints:
 | `md:` | ≥ 768 px | Tablet | 2-column grid, condensed nav |
 | `lg:` | ≥ 1024 px | Desktop | 3-column grid, full navbar with role badges |
 
-Key responsive patterns in code:
+Key responsive patterns:
 
 | Element | Mobile | Tablet | Desktop |
 |---|---|---|---|
@@ -478,7 +446,6 @@ Key responsive patterns in code:
 | Dashboard cards | `grid-cols-1` | `sm:grid-cols-2` | `lg:grid-cols-3` |
 | Health buttons | `flex-col` | `sm:flex-row` | `sm:flex-row` |
 | Station form | `grid-cols-1` | `md:grid-cols-2` | `md:grid-cols-2` |
-| Stats KPIs | `grid-cols-2` | `grid-cols-2` | `grid-cols-4` |
 | Tables | `overflow-x-auto` scroll | `overflow-x-auto` | full width |
 
 ---
@@ -486,27 +453,29 @@ Key responsive patterns in code:
 ## Design Language
 
 **Color system:**
-- `primary` — green `#22c55e` / `#16a34a` — EV/ecology theme, CTAs
-- `accent` — blue `#3b82f6` / `#2563eb` — secondary actions
-- Danger — red `#ef4444` — destructive actions (Delete, Stop)
-- Warning — amber `#f59e0b` — MAINTENANCE, RESERVED states
+- `primary` — green `#30D158` — EV/ecology theme, primary CTAs
+- `accent` — blue `#0A84FF` — secondary actions, links
+- Danger — red `#FF453A` — destructive actions (Delete, Stop, Sign Out)
+- Warning — amber `#FF9F0A` — MAINTENANCE, RESERVED states
 
-**Status badge colors** (from `utils/constants.ts`):
+**Status badge colors:**
 
 | Status | Color |
 |---|---|
 | ACTIVE, FREE, COMPLETED, RESOLVED | Green |
-| CHARGING, IN_PROGRESS, STARTED, NEW | Blue/Indigo |
+| CHARGING, IN_PROGRESS, NEW | Blue |
 | MAINTENANCE, RESERVED | Yellow |
-| OUT_OF_ORDER, ERROR, FAILED, INTERRUPTED | Red |
+| OUT_OF_ORDER, ERROR, INTERRUPTED | Red |
 
-**Role badge colors** (navbar):
+**Role badge colors (navbar):**
 - USER → green pill
 - TECH_SUPPORT → blue pill
 - ADMIN → purple pill
 
-**Charging progress ring** (SVG): color changes at thresholds —
-`< 50%` yellow → `50–80%` blue → `> 80%` green. Animates with CSS `transition-all duration-1000` on each polling update.
+**Charging progress ring (SVG):** color changes at thresholds —
+`< 50%` yellow → `50–80%` blue → `> 80%` green.
+
+**Glass cards:** `backdrop-filter: blur`, semi-transparent background, subtle border — iOS-inspired UI.
 
 ---
 
@@ -518,38 +487,67 @@ frontend/
 ├── vite.config.ts                    — SWC plugin, @ path alias, dev proxy
 ├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
 ├── eslint.config.js                  — TypeScript + React Hooks rules
-├── tailwind.config.js                — custom color palette
-├── index.html                        — app shell, title "Easy Charge"
+├── tailwind.config.js                — custom color palette and utilities
+├── index.html                        — app shell
 └── src/
     ├── index.tsx                     — entry: Provider → Router → AuthProvider → App
-    ├── App.tsx                       — route tree with ProtectedRoute wrappers
+    ├── App.tsx                       — full route tree with ProtectedRoute wrappers
     ├── services/
     │   ├── config/env.ts             — centralised VITE_ env vars
-    │   └── logging/logger.ts         — Logger class with named loggers + level filter
-    ├── types/index.ts                — domain interfaces (Station, Port, Session, User…)
-    ├── api/client.ts                 — Axios instance + interceptors + 5 API groups
+    │   └── logging/logger.ts         — Logger class, named loggers, level filter
+    ├── types/index.ts                — domain interfaces: Station, Port, Session, User…
+    ├── api/client.ts                 — Axios instance, interceptors, 5 API groups
     ├── auth/
-    │   ├── AuthContext.tsx           — Context: login, logout, register, role flags
+    │   ├── AuthContext.tsx           — login, logout, register, role flags
     │   ├── Login.tsx / Register.tsx  — public auth pages
     │   └── ProtectedRoute.tsx        — auth + role guard → redirect
     ├── store/
     │   ├── index.ts                  — configureStore, RootState, AppDispatch
-    │   └── slices/                   — authSlice, stationsSlice, sessionsSlice,
-    │                                    healthSlice, adminSlice, techSupportSlice
+    │   └── slices/
+    │       ├── authSlice.ts
+    │       ├── stationsSlice.ts
+    │       ├── sessionsSlice.ts      — includes fetchAllSessions, forceStopSession
+    │       ├── healthSlice.ts
+    │       ├── adminSlice.ts
+    │       └── techSupportSlice.ts
     ├── hooks/
     │   ├── useAuth.ts                — AuthContext wrapper with null guard
     │   └── usePolling.ts             — stable setInterval via useRef
     ├── utils/
-    │   ├── constants.ts              — status arrays as const, STATUS_COLORS map
+    │   ├── constants.ts              — STATUS_COLORS map, status arrays
     │   └── error.ts                  — getErrorMessage(): axios.isAxiosError guard
     ├── components/
-    │   ├── Layout.tsx / Navbar.tsx   — shell + role-aware navigation
-    │   └── common/StatusBadge.tsx / LoadingSpinner.tsx
+    │   ├── Layout.tsx                — page shell with navbar
+    │   ├── Navbar.tsx                — role-aware navigation, mobile hamburger
+    │   └── common/
+    │       ├── StatusBadge.tsx
+    │       └── LoadingSpinner.tsx
     └── pages/
         ├── Dashboard.tsx             — home + Health Check widget
-        ├── user/                     — StationList, StationDetail, ChargingSession, SessionHistory
-        ├── techSupport/              — ErrorLog, StationManagement, SystemStats
-        └── admin/                   — UserManagement, StationAdmin, TariffManagement
+        ├── error/
+        │   ├── ErrorForbidden.tsx    — 403
+        │   ├── ErrorSystem.tsx       — 500
+        │   └── NotFound.tsx          — 404
+        ├── account/
+        │   ├── Profile.tsx
+        │   └── Settings.tsx
+        ├── user/
+        │   ├── StationList.tsx
+        │   ├── StationDetail.tsx
+        │   ├── ChargingSession.tsx
+        │   └── SessionHistory.tsx
+        ├── support/
+        │   ├── SupportDashboard.tsx
+        │   └── SupportSessions.tsx
+        ├── techSupport/
+        │   ├── ErrorLog.tsx
+        │   ├── StationManagement.tsx
+        │   └── SystemStats.tsx
+        └── admin/
+            ├── AdminDashboard.tsx
+            ├── UserManagement.tsx
+            ├── StationAdmin.tsx
+            └── TariffManagement.tsx
 ```
 
 ---
@@ -568,52 +566,42 @@ frontend/
 </Redux Provider>
 ```
 
-### State Management (Redux)
+### Redux State Shape
 
-```typescript
+```
 {
   auth:        { user: User | null, loading, error }
   stations:    { list: Station[], currentStation, loading, error }
-  sessions:    { activeSession: Session | null, history: Session[], allSessions: Session[], loading, error }
+  sessions:    { activeSession: Session | null, history: Session[],
+                 allSessions: Session[], loading, error }
   health:      { response: HealthResponse | null, loading, error, lastChecked }
   admin:       { users: User[], loading, error }
-  techSupport: { errors: ErrorLog[], stats, loading, error }
+  techSupport: { errors: ErrorLog[], stats: TechSupportStats | null, loading, error }
 }
 ```
 
-All async operations use `createAsyncThunk`. Errors unwrapped via `getErrorMessage()` — no `any` casts.
+All async operations use `createAsyncThunk`. Errors extracted via `getErrorMessage()` — no `any` casts.
 
 ### Routing & Access Control
 
-```tsx
-// All authenticated users
-<Route path="/stations" element={<ProtectedRoute><Layout><StationList /></Layout></ProtectedRoute>} />
-<Route path="/sessions/current" element={<ProtectedRoute><Layout><ChargingSession /></Layout></ProtectedRoute>} />
-<Route path="/account/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
+```
+ProtectedRoute behaviour:
+  - Not authenticated  → /login?redirect={path}
+  - Wrong role         → /error/forbidden
 
-// TECH_SUPPORT and ADMIN only
-<Route path="/support/logs" element={<ProtectedRoute roles={['TECH_SUPPORT','ADMIN']}>...</ProtectedRoute>} />
-<Route path="/support/sessions" element={<ProtectedRoute roles={['TECH_SUPPORT','ADMIN']}>...</ProtectedRoute>} />
-
-// ADMIN only
-<Route path="/admin/dashboard" element={<ProtectedRoute roles={['ADMIN']}>...</ProtectedRoute>} />
-<Route path="/admin/users" element={<ProtectedRoute roles={['ADMIN']}>...</ProtectedRoute>} />
-
-// Error pages (public — no auth guard)
-<Route path="/error/forbidden" element={<ErrorForbidden />} />
-<Route path="/error/system" element={<ErrorSystem />} />
-<Route path="*" element={<NotFound />} />
+Axios interceptor behaviour:
+  - 401  → clear tokens + /login?redirect={path}
+  - 403  → /error/forbidden
+  - 5xx  → /error/system
 ```
 
-`ProtectedRoute` behaviour:
-- Not authenticated → `/login?redirect={path}`
-- Wrong role → `/error/forbidden`
+### HTTP Client (`src/api/client.ts`)
 
-### HTTP Client
+- `baseURL` from `config.apiBaseUrl` (`VITE_API_BASE_URL`)
+- **Request interceptor** — attaches `Authorization: Bearer <token>` from localStorage
+- **Response interceptor** — handles 401 / 403 / 5xx globally
 
-- `baseURL` from `config.apiBaseUrl` (env var `VITE_API_BASE_URL`)
-- **Request interceptor** — adds `Authorization: Bearer <token>` to every request
-- **Response interceptor** — `401` → clear tokens + `/login?redirect={path}` · `403` → `/error/forbidden` · `5xx` → `/error/system`
+> **Note:** `localStorage` token storage is a known limitation. Planned improvement: BFF layer with `httpOnly` session cookies. See `Pages.md` → *Auth Strategy* for the migration plan.
 
 ---
 
@@ -626,7 +614,7 @@ cp env.example .env
 | Variable | Default | Description |
 |---|---|---|
 | `VITE_API_BASE_URL` | `/api` | Backend URL. Dev proxy rewrites `/api/*` → `localhost:3001`. Set full URL in production. |
-| `VITE_API_PREFIX` | `/api` | URL prefix (informational) |
+| `VITE_API_PREFIX` | `/api` | URL prefix used in the API client |
 | `VITE_LOG_LEVEL` | `info` | Log level: `debug` / `info` / `warn` / `error` |
 
 ---
@@ -637,8 +625,8 @@ cp env.example .env
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/health` | Gateway health check |
-| `GET` | `/health?full=true` | Full chain: Gateway → Lambda → DynamoDB |
+| `GET` | `/api/health` | Gateway health check |
+| `GET` | `/api/health?full=true` | Full chain: Gateway → Lambda → DynamoDB |
 
 ### USER
 
@@ -650,7 +638,7 @@ cp env.example .env
 | `GET` | `/api/stations/:id` | — | Station details + ports |
 | `POST` | `/api/sessions/start` | `{ stationId, portId, batteryCapacityKwh, targetChargePercent }` | Start charging |
 | `POST` | `/api/sessions/:id/stop` | — | Stop own session |
-| `GET` | `/api/sessions/active` | — | Active session (polled every 3 s) |
+| `GET` | `/api/sessions/active` | — | Active session (polled) |
 | `GET` | `/api/sessions/history` | — | Completed sessions |
 
 ### TECH_SUPPORT (+ ADMIN)
@@ -658,10 +646,11 @@ cp env.example .env
 | Method | Endpoint | Body | Description |
 |---|---|---|---|
 | `GET` | `/api/tech-support/errors` | `?level=&status=&service=` | Error log |
-| `PATCH` | `/api/tech-support/errors/:id/status` | `{ status, timestamp? }` | Update status |
+| `PATCH` | `/api/tech-support/errors/:id/status` | `{ status }` | Update status |
 | `PATCH` | `/api/tech-support/stations/:id/mode` | `{ status }` | Set station mode |
-| `POST` | `/api/tech-support/sessions/:id/force-stop` | — | Force stop |
-| `GET` | `/api/tech-support/stats` | — | System stats (polled every 10 s) |
+| `GET` | `/api/sessions/all` | `?status=ACTIVE` | All sessions |
+| `POST` | `/api/sessions/:id/stop` | — | Force stop session |
+| `GET` | `/api/tech-support/stats` | — | System stats |
 
 ### ADMIN
 
@@ -717,10 +706,12 @@ Without AWS Cognito configured, the backend accepts any password:
 
 **TypeScript over plain JS** — all domain models in `src/types/index.ts` serve as a contract with the backend. If an API field changes, the compiler finds every affected location immediately.
 
-**`getErrorMessage(err, fallback)` utility** — replaces `err: any` + verbose type casts scattered across 15+ catch blocks. Uses `axios.isAxiosError()` (official type guard) to safely narrow `unknown` → `AxiosError`.
+**`getErrorMessage(err, fallback)` utility** — replaces `err: any` + verbose type casts across catch blocks. Uses `axios.isAxiosError()` (official type guard) to safely narrow `unknown` to `AxiosError`.
 
-**`useRef` in `usePolling`** — if `callback` were in the `setInterval` dependency array, every render that creates a new function reference would restart the interval. `useRef` holds the latest callback without triggering re-runs — the interval is stable while the callback stays fresh.
+**`useRef` in `usePolling`** — prevents the interval from restarting on every render. The ref holds the latest callback without being a reactive dependency, so the interval is stable while the callback stays fresh.
 
-**Vite 7 + SWC over CRA + Babel** — SWC (Rust) compiles TypeScript/JSX ~20× faster than Babel. Combined with Vite's native-ESM dev server (no full-bundle startup), HMR round-trip is under 100 ms versus 1–2 s with Webpack/Babel.
+**Vite 7 + SWC over CRA + Babel** — SWC (Rust) compiles TypeScript/JSX ~20× faster than Babel. Combined with Vite's native-ESM dev server, HMR round-trip is under 100 ms.
 
-**Dual auth system (Context + Redux)** — `AuthContext` is lightweight and synchronous for components that just need "is logged in / what role". Redux `authSlice` tracks async state (`loading`, `error`) for the login form. Both read from the same `localStorage` token.
+**Dual auth system (Context + Redux)** — `AuthContext` is lightweight and synchronous for components that need "is logged in / what role". Redux `authSlice` tracks async state (`loading`, `error`) for the login form.
+
+**See also:** [`Pages.md`](./Pages.md) — detailed per-page spec with Redux state, API calls, and UI elements.
