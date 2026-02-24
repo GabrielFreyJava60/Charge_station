@@ -666,27 +666,6 @@ cp env.example .env
 
 ---
 
-## Running the App
-
-```bash
-# install dependencies
-npm install
-
-# copy env template
-cp env.example .env
-
-# development server → http://localhost:5173
-npm run dev
-
-# type-check only
-npx tsc --noEmit
-
-# production build → dist/
-npm run build
-
-# preview production build locally
-npm run preview
-```
 
 ---
 
@@ -702,16 +681,5 @@ Without AWS Cognito configured, the backend accepts any password:
 
 ---
 
-## Key Design Decisions
-
-**TypeScript over plain JS** — all domain models in `src/types/index.ts` serve as a contract with the backend. If an API field changes, the compiler finds every affected location immediately.
-
-**`getErrorMessage(err, fallback)` utility** — replaces `err: any` + verbose type casts across catch blocks. Uses `axios.isAxiosError()` (official type guard) to safely narrow `unknown` to `AxiosError`.
-
-**`useRef` in `usePolling`** — prevents the interval from restarting on every render. The ref holds the latest callback without being a reactive dependency, so the interval is stable while the callback stays fresh.
-
-**Vite 7 + SWC over CRA + Babel** — SWC (Rust) compiles TypeScript/JSX ~20× faster than Babel. Combined with Vite's native-ESM dev server, HMR round-trip is under 100 ms.
-
-**Dual auth system (Context + Redux)** — `AuthContext` is lightweight and synchronous for components that need "is logged in / what role". Redux `authSlice` tracks async state (`loading`, `error`) for the login form.
 
 **See also:** [`Pages.md`](./Pages.md) — detailed per-page spec with Redux state, API calls, and UI elements.
