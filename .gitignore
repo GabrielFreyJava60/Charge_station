@@ -1,24 +1,53 @@
-# Dependencies
+# ── Dependencies ────────────────────────────────────────────────
 node_modules/
-__pycache__/
-*.pyc
 .venv/
+*.egg-info/
 
-# Environment
+# ── Environment files ────────────────────────────────────────────
 .env
 .env.local
+.env.development
 .env.production
+.env.staging
+# keep .env.example files (they are safe to commit)
 
-# Build
+# ── Build output ─────────────────────────────────────────────────
+dist/
+build/
+out/
 frontend/dist/
-.aws-sam/
 
-# IDE
+# ── TypeScript incremental build cache ───────────────────────────
+*.tsbuildinfo
+
+# ── AWS SAM / CDK ────────────────────────────────────────────────
+.aws-sam/
+cdk.out/
+samconfig.toml
+
+# ── Lambda deployment packages ───────────────────────────────────
+*.zip
+
+# ── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# ── Test coverage ────────────────────────────────────────────────
+coverage/
+.nyc_output/
+htmlcov/
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── OS / IDE ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
 .idea/
 .vscode/
 *.swp
 *.swo
-.DS_Store
-
-# Logs
-*.log
