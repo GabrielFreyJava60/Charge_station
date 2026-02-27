@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
 const config = require('./config');
 const { requestLogger } = require('./middleware/logger');
-const { authenticate } = require('./middleware/auth');
+const { authenticate, authenticateOptional } = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
 
 const authRoutes = require('./routes/auth');
@@ -83,7 +83,7 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/stations', authenticate, stationRoutes);
+app.use('/api/stations', authenticateOptional, stationRoutes);
 app.use('/api/sessions', authenticate, sessionRoutes);
 app.use('/api/admin', authenticate, adminRoutes);
 app.use('/api/tech-support', authenticate, techSupportRoutes);

@@ -62,4 +62,12 @@ function authenticate(req, res, next) {
   });
 }
 
-module.exports = { authenticate };
+function authenticateOptional(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+  authenticate(req, res, next);
+}
+
+module.exports = { authenticate, authenticateOptional };

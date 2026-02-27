@@ -5,7 +5,7 @@ const { requireFields, validateCoordinates, validatePositiveNumber, validateEnum
 
 const router = Router();
 
-router.get('/', requirePermission('stations:read'), async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { status } = req.query;
     const stations = status
@@ -17,7 +17,7 @@ router.get('/', requirePermission('stations:read'), async (req, res, next) => {
   }
 });
 
-router.get('/:id', requirePermission('stations:read'), async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const station = await stationService.getStation(req.params.id);
     res.json({ station });
