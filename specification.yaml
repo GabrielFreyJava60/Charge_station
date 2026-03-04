@@ -1,0 +1,150 @@
+openapi: 3.0.1
+info:
+  title: EV Charging Public API
+  version: 1.0.0
+  description: Public API for electric vehicle charging stations.
+
+servers:
+  - url: https://localhost:8000
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /welcome:
+    get:
+      operationId: getWelcomePageData
+      summary: Get list of all active charging stations for the welcome page (unauthenticated)
+      description: Returns all public data about active charging stations.
+      parameters:
+        - name: city
+          in: query
+          description: City name
+          required: false
+          schema:
+            type: string
+            example: Tel Aviv
+        - name: provider
+          in: query
+          description: Service provider (station owner) code
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of active charging stations data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StationBasicInfo'
+
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /stations:
+    get:
+      operationId: getStations
+      summary: Get list of charging stations
+      description: Returns a list of charging stations data
+      parameters:
+        - name: city
+          in: query
+          description: City name
+          required: false
+          schema:
+            type: string
+        - name: provider
+          in: query
+          description: Service provider code
+          required: false
+          schema:
+            type: string
+            example: PRO_001
+      responses:
+        '200':
+          description: List of charging stations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Station'
+
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+components:
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: INTERNAL_ERROR
+            message:
+              type: string
+              example: Internal server error
+
+    Station:
+      allOf:
+        - $ref: '#/components/schemas/StationBasicInfo'
+        - type: object
+          properties:
+            tariff:
+              type: string
+
+    StationBasicInfo:
+      type: object
+      required: [id, address, providerName, maxPowerKw, portCount]
+      properties:
+        id:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        providerName:
+          type: string
+        maxPowerKw:
+          type: integer
+        portCount:
+          type: integer
+
+  responses:
+
+    ErrorResponse:
+      description: Standard error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
