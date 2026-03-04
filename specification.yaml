@@ -220,6 +220,93 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /account/profile:
+    get:
+      operationId: getProfile
+      summary: Get user profile
+      description: Returns user profile by ID.
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: User identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileSingleResponse'
+
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /account/settings:
+    get:
+      operationId: getSettings
+      summary: Get user settings
+      description: Returns user account settings.
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: User identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsSingleResponse'
+
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /account/stats:
+    get:
+      operationId: getStats
+      summary: Get user charging stats
+      description: Returns user charging statistics.
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: User identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsSingleResponse'
+
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
 components:
 
   schemas:
@@ -446,6 +533,96 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/SessionHistoryItem'
+
+    Profile:
+      type: object
+      required: [userId, email, firstName, lastName, phone, role, createdAt, lastLoginAt]
+      properties:
+        userId:
+          type: string
+          example: usr-123
+        email:
+          type: string
+          example: user@example.com
+        firstName:
+          type: string
+          example: Dana
+        lastName:
+          type: string
+          example: Levi
+        phone:
+          type: string
+          example: "+972501234567"
+        role:
+          type: string
+          enum: [USER, TECH_SUPPORT, ADMIN]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-01T08:20:00Z"
+        lastLoginAt:
+          type: string
+          format: date-time
+          example: "2026-03-04T09:41:00Z"
+
+    ProfileSingleResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Profile'
+
+    Settings:
+      type: object
+      required: [language, timezone, currency, notifications, theme]
+      properties:
+        language:
+          type: string
+          example: en
+        timezone:
+          type: string
+          example: Asia/Jerusalem
+        currency:
+          type: string
+          example: ILS
+        notifications:
+          type: string
+          enum: [on, off]
+        theme:
+          type: string
+          enum: [dark, light]
+
+    SettingsSingleResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Settings'
+
+    Stats:
+      type: object
+      required: [totalSessions, totalEnergyKWh, totalSpent, avgSpent, favoriteStationId]
+      properties:
+        totalSessions:
+          type: integer
+        totalEnergyKWh:
+          type: number
+          format: float
+        totalSpent:
+          type: number
+          format: float
+        avgSpent:
+          type: number
+          format: float
+        favoriteStationId:
+          type: string
+
+    StatsSingleResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Stats'
 
   responses:
 
