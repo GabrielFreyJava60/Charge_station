@@ -79,6 +79,13 @@ paths:
           schema:
             type: string
             example: PRO_001
+        - name: state
+          in: query
+          description: Station state filter
+          required: false
+          schema:
+            type: string
+            enum: [New, Active, OutOfService]
       responses:
         '200':
           description: List of charging stations
@@ -90,6 +97,35 @@ paths:
                   $ref: '#/components/schemas/Station'
 
         '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /stations/{stationId}:
+    get:
+      operationId: getStationById
+      summary: Get charging station by ID
+      description: Returns a single charging station by its ID.
+      parameters:
+        - name: stationId
+          in: path
+          required: true
+          description: Station identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Charging station data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Station'
+
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '404':
           $ref: '#/components/responses/ErrorResponse'
 
         '500':
@@ -116,12 +152,26 @@ components:
               example: Internal server error
 
     Station:
-      allOf:
-        - $ref: '#/components/schemas/StationBasicInfo'
-        - type: object
-          properties:
-            tariff:
-              type: string
+      type: object
+      required: [id, city, address, providerName, maxPowerKw, portCount, state]
+      properties:
+        id:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        providerName:
+          type: string
+        maxPowerKw:
+          type: integer
+        portCount:
+          type: integer
+        state:
+          type: string
+          enum: [New, Active, OutOfService]
+        tariff:
+          type: string
 
     StationBasicInfo:
       type: object
