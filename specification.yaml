@@ -349,13 +349,27 @@ components:
 
     Station:
       type: object
-      required: [id, city, address, providerName, maxPowerKw, portCount, state]
+        name:
+      required: 
+        - id
+        - name
+        - city
+        - address
+        - providerCode
+        - providerName
+        - maxPowerKw
+        - portCount
+        - state
       properties:
         id:
+          type: string
+        name:
           type: string
         city:
           type: string
         address:
+          type: string
+        providerCode:
           type: string
         providerName:
           type: string
@@ -366,8 +380,6 @@ components:
         state:
           type: string
           enum: [New, Active, OutOfService]
-        tariff:
-          type: string
 
     StationSingleResponse:
       type: object
@@ -389,9 +401,11 @@ components:
 
     StationBasicInfo:
       type: object
-      required: [id, address, providerName, maxPowerKw, portCount]
+      required: [id, name, city, address, providerName, maxPowerKw, portCount]
       properties:
         id:
+          type: string
+        name:
           type: string
         city:
           type: string
@@ -614,6 +628,9 @@ components:
         avgSpent:
           type: number
           format: float
+        currency:
+          type: string
+          example: ILS
         favoriteStationId:
           type: string
 
