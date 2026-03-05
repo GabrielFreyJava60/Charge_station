@@ -364,6 +364,169 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /support/stations/{stationId}:
+    get:
+      operationId: getSupportStationById
+      summary: Get support station by ID
+      description: Returns detailed support information for a charging station including ports.
+      parameters:
+        - name: stationId
+          in: path
+          required: true
+          description: Station identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Support station details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StationSupportDetailResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /support/sessions:
+    get:
+      operationId: listSupportSessions
+      summary: Get support sessions
+      description: Returns support session details filtered by various criteria.
+      parameters:
+        - name: stationId
+          in: query
+          required: false
+          description: Station identifier
+          schema:
+            type: string
+        - name: portId
+          in: query
+          required: false
+          description: Port identifier
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: Session status filter
+          schema:
+            type: string
+            enum: [preparing, charging, paused, completed, faulted, error]
+        - name: startedAtFrom
+          in: query
+          required: false
+          description: Start date filter (session started at or after)
+          schema:
+            type: string
+            format: date-time
+        - name: startedAtTo
+          in: query
+          required: false
+          description: End date filter (session started at or before)
+          schema:
+            type: string
+            format: date-time
+        - name: endedAtFrom
+          in: query
+          required: false
+          description: Start date filter (session ended at or after)
+          schema:
+            type: string
+            format: date-time
+        - name: endedAtTo
+          in: query
+          required: false
+          description: End date filter (session ended at or before)
+          schema:
+            type: string
+            format: date-time
+        - name: userInitiated
+          in: query
+          required: false
+          description: Filter by whether session was user-initiated
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          required: true
+          description: Page number for pagination
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: true
+          description: Number of items per page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of support sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionDetailedCollectionResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /support/logs:
+    get:
+      operationId: listSupportLogs
+      summary: Get support logs
+      description: Returns support logs filtered by station, port, and date range.
+      parameters:
+        - name: stationId
+          in: query
+          required: false
+          description: Station identifier
+          schema:
+            type: string
+        - name: portId
+          in: query
+          required: false
+          description: Port identifier
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          required: true
+          description: Start date for log period
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          required: true
+          description: End date for log period
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          required: true
+          description: Page number for pagination
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: true
+          description: Number of items per page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of support logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportLogCollectionResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
 components:
 
   schemas:
@@ -485,6 +648,78 @@ components:
         meta:
           $ref: '#/components/schemas/Meta'
 
+    PortSupportDetail:
+      type: object
+      required: [portId, portNumber, status, lastServiceDate, plannedServiceDate]
+      properties:
+        portId:
+          type: string
+        portNumber:
+          type: integer
+        status:
+          type: string
+        lastServiceDate:
+          type: string
+          format: date
+        plannedServiceDate:
+          type: string
+          format: date
+
+    StationSupportDetail:
+      type: object
+      required:
+        - id
+        - name
+        - city
+        - address
+        - providerName
+        - maxPowerKw
+        - portCount
+        - createdAt
+        - updatedAt
+        - managerName
+        - managerPhone
+        - notes
+        - ports
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        providerName:
+          type: string
+        maxPowerKw:
+          type: integer
+        portCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        managerName:
+          type: string
+        managerPhone:
+          type: string
+        notes:
+          type: string
+        ports:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortSupportDetail'
+
+    StationSupportDetailResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/StationSupportDetail'
+
     Session:
       type: object
       required:
@@ -547,6 +782,72 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/Session'
+
+    SessionDetailedItem:
+      type: object
+      required:
+        - id
+        - stationId
+        - status
+        - startedAt
+        - durationMinutes
+        - chargeLevelPercent
+        - energyConsumedKWh
+        - maxPowerKw
+        - pricePerKWh
+        - currentCost
+        - currency
+        - portId
+        - userId
+      properties:
+        id:
+          type: string
+        stationId:
+          type: string
+        portId:
+          type: string
+        status:
+          type: string
+          enum: [preparing, charging, paused, completed, faulted, error]
+        startedAt:
+          type: string
+          format: date-time
+          example: '2026-03-04T09:00:00Z'
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+        durationMinutes:
+          type: integer
+        chargeLevelPercent:
+          type: integer
+        energyConsumedKWh:
+          type: number
+          format: float
+        maxPowerKw:
+          type: integer
+        pricePerKWh:
+          type: number
+          format: float
+        currentCost:
+          type: number
+          format: float
+        currency:
+          type: string
+        userId:
+          type: string
+          description: User who initiated the session
+
+    SessionDetailedCollectionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionDetailedItem'
+        meta:
+          $ref: '#/components/schemas/Meta'
 
     StartSessionRequest:
       type: object
@@ -761,6 +1062,31 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/Stats'
+
+    SupportLogItem:
+      type: object
+      required: [stationId, portId, dateTime, logMessage]
+      properties:
+        stationId:
+          type: string
+        portId:
+          type: string
+        dateTime:
+          type: string
+          format: date-time
+        logMessage:
+          type: string
+
+    SupportLogCollectionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportLogItem'
+        meta:
+          $ref: '#/components/schemas/Meta'
 
   responses:
 
