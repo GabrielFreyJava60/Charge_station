@@ -364,6 +364,36 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /support/stations:
+    get:
+      operationId: listSupportStations
+      summary: Get list of support stations
+      description: Returns support station information (without ports) filtered by city and provider.
+      parameters:
+        - name: city
+          in: query
+          required: false
+          description: City name filter
+          schema:
+            type: string
+        - name: providerCode
+          in: query
+          required: false
+          description: Provider code filter
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of support stations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StationSupportListCollectionResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
   /support/stations/{stationId}:
     get:
       operationId: getSupportStationById
@@ -648,6 +678,49 @@ components:
         meta:
           $ref: '#/components/schemas/Meta'
 
+    StationSupportListItem:
+      type: object
+      required:
+        - id
+        - name
+        - city
+        - address
+        - providerName
+        - maxPowerKw
+        - portCount
+        - createdAt
+        - updatedAt
+        - managerName
+        - managerPhone
+        - notes
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        providerName:
+          type: string
+        maxPowerKw:
+          type: integer
+        portCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        managerName:
+          type: string
+        managerPhone:
+          type: string
+        notes:
+          type: string
+
     PortSupportDetail:
       type: object
       required: [portId, portNumber, status, lastServiceDate, plannedServiceDate]
@@ -719,6 +792,17 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/StationSupportDetail'
+
+    StationSupportListCollectionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StationSupportListItem'
+        meta:
+          $ref: '#/components/schemas/Meta'
 
     Session:
       type: object
