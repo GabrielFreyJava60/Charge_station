@@ -1,3 +1,22 @@
+## Backend-Frontend API Documentation
+
+The potential backend-frontend interaction (API endpoints, request/response schemas, and data models) is described in the [specification.yaml](../specification.yaml) file at the project root. This OpenAPI 3.0 specification defines the EV Charging Public API contract.
+
+### Previewing the API Specification
+
+To preview the `specification.yaml` file in OpenAPI (Swagger) format within VS Code, you can use the **Swagger Viewer** extension:
+
+1. Install the [Swagger Viewer](https://marketplace.visualstudio.com/items?itemName=Arjun.swagger-viewer) extension from the VS Code Marketplace.
+2. Open `specification.yaml` in the editor.
+3. Open the preview using any of these methods:
+   - **Command Palette**: Run `Preview Swagger` (Ctrl+Shift+P or Cmd+Shift+P, then type "Preview Swagger")
+   - **Keyboard shortcut**: `Shift + Alt + P`
+   - **Context menu**: Right-click the file in the Explorer and select "Preview Swagger"
+
+The extension supports both YAML and JSON formats and provides a formatted, interactive view of the API documentation.
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
