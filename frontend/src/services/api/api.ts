@@ -1,7 +1,9 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 
 import { config } from '@/config/env';
 import { getLogger } from '@/services/logging';
+import { type ApiErrorResponse } from '@/types/apiTypes'
+import { ApiClientError } from '@/types/errors'
 
 const logger = getLogger("ApiClient");
 
@@ -9,6 +11,9 @@ const DEFAULT_TIMEOUT: number = 3000;
 
 const API_BASE_URL: string = config.apiBaseUrl;
 const API_TIMEOUT: number = config.apiTimeout ?? DEFAULT_TIMEOUT;
+
+const DEFAULT_NETWORK_ERROR_CODE = 'NETWORK_ERROR';
+const DEFAULT_CONFIG_ERROR_CODE = 'CONFIG_ERROR';
 
 class ApiClient {
     private readonly client: AxiosInstance;
@@ -25,6 +30,36 @@ class ApiClient {
             },
         });
         logger.debug(`Created API client. Params: url=${baseUrl}, timeout=${timeout}`);
+        this.client.interceptors.response.use(
+            (response) => {
+                const { status, data } = response;
+                logger.debug(`Response status = ${status}`);
+                return data;
+            },
+            (error: AxiosError<ApiErrorResponse>) => {
+                const { code, message, response, request } = error;
+                logger.debug('Request error: ', {
+                    axiosCode: code,
+                    axiosMEssage: message,
+                    hasResponse: !!response,
+                    hasRequest: !!request
+                });
+                if (response) {
+                    const { status, data } = response;
+                    logger.debug(`Error status ${status}`);
+                    logger.debug('Server error response: ', data);
+                    const apiError = data?.error;
+                    throw new ApiClientError(
+                        apiError?.message ?? 'Server error',
+                        apiError?.code ?? 'SERVER_ERROR',
+                        status
+                    );
+                }
+                logger.debug(request ? 'Network error' : 'Configuration error');
+                const errorCode = request ? DEFAULT_NETWORK_ERROR_CODE: DEFAULT_CONFIG_ERROR_CODE;
+                throw new ApiClientError(message, errorCode);
+            }
+        );
     }
 
     async get<T>(
@@ -32,13 +67,11 @@ class ApiClient {
         config?: AxiosRequestConfig
     ): Promise<T> {
         logger.debug('GET request', { endpoint, params: config?.params });
-        const response: AxiosResponse<T> = await this.client.get<T>(
+        const response = await this.client.get<T>(
             endpoint,
             {...config},
         );
-        logger.debug(`GET Response status: ${response.status}, `);
-        logger.debug(`GET Response data:`, response.data);
-        return response.data;
+        return response as T;
     }
 
     async post<T>(
@@ -46,16 +79,14 @@ class ApiClient {
         data?: unknown,
         config?: AxiosRequestConfig
     ): Promise<T> {
-        logger.debug('POST request to', endpoint, 'with config:', config);
+        logger.debug('POST request ', { endpoint, params: config?.params });
         logger.debug(`POST request data: `, data);
         const response = await this.client.post<T>(
             endpoint,
             data,
             { ...config },
         );
-        logger.debug(`POST Response status: ${response.status}, `);
-        logger.debug(`POST Response data:`, response.data);
-        return response.data;
+        return response as T;
     }
 }
 
