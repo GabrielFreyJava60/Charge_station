@@ -3,14 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: Charging stations backend on ECS Fargate behind ALB
 
 Parameters:
-  TargetGroupArn:
-    Type: String
-    Description: Target group ARN
-    Default: arn:aws:elasticloadbalancing:il-central-1:852215679994:targetgroup/targetGroup/8c32c278befea5b0
-  AlbSecurityGroupId:
-    Type: String
-    Description: Security group ID of the existing ALB (for ECS service SG ingress)
-    Default: sg-0cdedb1b9b3108ee4
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: VPC ID
@@ -38,6 +30,27 @@ Parameters:
   ContainerPort:
     Type: Number
     Default: 8000
+  ContainerCpu:
+    Type: Number
+    Default: 256
+    Description: CPU units for the Fargate task (e.g., 256 = 0.25 vCPU)
+  ContainerMemory:
+    Type: Number
+    Default: 512
+    Description: Memory for the Fargate task in MiB
+  HealthCheckPath:
+    Type: String
+    Default: /health
+    Description: Health check path for the application (HTTP 200 expected)
+  LambdaRegion:
+    Type: String
+    Default: il-central-1
+  LambdaAccountId:
+    Type: String
+    Default: 852215679994
+  LambdaHealthName:
+    Type: String
+    Default: charging-stations-health
   DesiredCount:
     Type: Number
     Default: 1
@@ -78,13 +91,67 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: lambda:InvokeFunction
-                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:charging-stations-health'
+                Resource: !Sub 'arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}'
+
+  TaskLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/charging-stations-backend
+      RetentionInDays: 14
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the public application load balancer
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: charging-stations-alb
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets: !Ref PublicSubnets
+
+  ApplicationTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: charging-stations-tg
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: !Ref ContainerPort
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: !Ref HealthCheckPath
+      HealthCheckProtocol: HTTP
+      Matcher:
+        HttpCode: 200
+
+  ApplicationLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ApplicationTargetGroup
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Cpu: '256'
-      Memory: '512'
+      Cpu: !Ref ContainerCpu
+      Memory: !Ref ContainerMemory
       NetworkMode: awsvpc
       RequiresCompatibilities: [FARGATE]
       ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
@@ -108,7 +175,7 @@ Resources:
             - Name: AWS_REGION
               Value: !Ref AWS::Region
             - Name: HEALTH_LAMBDA_FUNCTION_NAME
-              Value: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:charging-stations-health'
+              Value: !Sub 'arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}'
             - Name: AUTH_DISABLED
               Value: false
             - Name: COGNITO_REGION
@@ -125,7 +192,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: /ecs/charging-stations-backend
+              awslogs-group: !Ref TaskLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
 
@@ -139,10 +206,12 @@ Resources:
         - IpProtocol: tcp
           FromPort: !Ref ContainerPort
           ToPort: !Ref ContainerPort
-          SourceSecurityGroupId: !Ref AlbSecurityGroupId
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
 
   Service:
     Type: AWS::ECS::Service
+    DependsOn:
+      - ApplicationLoadBalancerListener
     Properties:
       Cluster: !Ref Cluster
       LaunchType: FARGATE
@@ -157,4 +226,18 @@ Resources:
       LoadBalancers:
         - ContainerName: charging-stations-backend
           ContainerPort: !Ref ContainerPort
-          TargetGroupArn: !Ref TargetGroupArn
+          TargetGroupArn: !Ref ApplicationTargetGroup
+
+Outputs:
+  LoadBalancerArn:
+    Description: ARN of the application load balancer
+    Value: !Ref ApplicationLoadBalancer
+  LoadBalancerDnsName:
+    Description: DNS name of the application load balancer
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+  LoadBalancerSecurityGroupId:
+    Description: Security group ID of the application load balancer
+    Value: !Ref LoadBalancerSecurityGroup
+  TargetGroupArn:
+    Description: ARN of the application target group
+    Value: !Ref ApplicationTargetGroup
