@@ -1,9 +1,9 @@
-import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig } from 'axios';
 
 import { config } from '@/config/env';
 import { getLogger } from '@/services/logging';
 import { type ApiErrorResponse } from '@/types/apiTypes'
-import { ApiError, ForbiddenError, HttpError, UnauthorizedError } from '@/types/errors'
+import { ForbiddenError, HttpError, UnauthorizedError } from '@/types/errors'
 
 const logger = getLogger("ApiClient");
 
