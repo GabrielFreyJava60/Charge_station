@@ -49,28 +49,33 @@ cp .env.example .env
 npm run dev
 ```
 
-http://localhost:8000
+<http://localhost:8000>
 
-### Health check
+### Health checks
 
-Frontend currently calls `GET /health`.
+Backend exposes two health endpoints:
+
+- **Shallow health** (`GET /health`) checks only that the backend API process is running.
+- **Deep health** (`GET /health/api`) checks backend-to-Lambda connectivity by invoking the health Lambda.
+
+Examples:
 
 ```bash
 curl http://localhost:8000/health
+curl http://localhost:8000/health/api
 ```
 
 Response contract:
 
 ```json
-{ "code": 200, "status": "running" }
+{ "code": 200, "status": "ok" }
+```
 
-Error message
-{
-  "error": {
-    "code": "LAMBDA_ERROR",
-    "message": "Bad health response from lambda"
-  }
-}
+Possible deep-health failures:
+
+```json
+{ "code": 502, "status": "bad-health-response" }
+{ "code": 502, "status": "no-lambda-response" }
 ```
 
 ## Welcome
@@ -124,9 +129,8 @@ Key variables:
 - `API_PREFIX` (optional, e.g. `/api/v1`)
 - `CORS_ORIGIN`
 
-### Health Lambda (optional)
+### Health Lambda
 
-- `USE_LAMBDA=false|true`
 - `AWS_REGION`
 - `HEALTH_LAMBDA_FUNCTION_NAME`
 
@@ -156,11 +160,14 @@ Example error:
 ### Health
 
 - `GET /health` (also available as `${API_PREFIX}/health` if `API_PREFIX` is set)
+- `GET /health/api` (also available as `${API_PREFIX}/health/api` if `API_PREFIX` is set)
+
+`/health` is shallow (backend-only), while `/health/api` is deep (invokes the health Lambda).
 
 Response:
 
 ```json
-{ "code": 200, "status": "running" }
+{ "code": 200, "status": "ok" }
 ```
 
 ### Auth
@@ -292,17 +299,116 @@ Minimal steps (high level):
 
 This repository includes a production Dockerfile: `backend/Dockerfile`.
 
+## Full Backend Deployment Procedure (ECS Fargate + SAM)
+
+This procedure covers Docker image build, push to ECR, parameter configuration in `template.yaml`, and stack deploy/delete.
+
+### 1) Prerequisites
+
+- AWS CLI authenticated (`aws configure` or SSO login)
+- Docker installed and running
+- AWS SAM CLI installed
+- IAM permissions for ECR, CloudFormation, ECS, ELB, Logs, IAM
+
+### 2) Build Docker image
+
+From repository root:
+
+```bash
+cd backend
+docker build -t charging-stations-backend:latest .
+```
+
+### 3) Push image to Amazon ECR
+
+Set your values and run:
+
+```bash
+AWS_REGION=il-central-1
+AWS_ACCOUNT_ID=852215679994
+ECR_REPOSITORY=charging-stations
+IMAGE_TAG=latest
+
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+docker tag charging-stations-backend:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+```
+
+Use the pushed image URI as `ImageUri` in deploy parameters.
+
+### 4) Configure deploy parameters
+
+Update parameter values in one of these places:
+
+- `backend/template.yaml` (Parameter defaults)
+- `backend/samconfig.toml` (`parameter_overrides`)
+- CLI `sam deploy --parameter-overrides ...`
+
+Important parameters in `template.yaml`:
+
+- Network: `VpcId`, `PublicSubnets`
+- Image/runtime: `ImageUri`, `ContainerPort`, `ContainerCpu`, `ContainerMemory`
+- Health checks: `HealthCheckPath` (recommended: `/health` for ALB shallow checks)
+- Lambda integration: `LambdaRegion`, `LambdaAccountId`, `LambdaHealthName`
+- Scaling: `DesiredCount`
+- Auth config: `CognitoUserPoolId`, `CognitoClientId`, `CognitoRegion`
+
+### 5) Deploy stack
+
+From `backend`:
+
+```bash
+sam build
+sam deploy
+```
+
+If you need explicit values:
+
+```bash
+sam deploy \
+  --stack-name charge-st \
+  --capabilities CAPABILITY_IAM \
+  --region il-central-1 \
+  --parameter-overrides \
+    ImageUri="773769103104.dkr.ecr.il-central-1.amazonaws.com/charging-stations:latest" \
+    HealthCheckPath="/health" \
+    DesiredCount="1"
+```
+
+After deployment, get ALB DNS:
+
+```bash
+aws cloudformation describe-stacks \
+  --stack-name charge-st \
+  --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDnsName'].OutputValue" \
+  --output text
+```
+
+### 6) Validate health after deploy
+
+```bash
+curl http://<alb-dns>/health
+curl http://<alb-dns>/health/api
+```
+
+### 7) Delete stack
+
+```bash
+sam delete --stack-name charge-st --region il-central-1
+```
+
 ## CloudWatch Logs
 
 - ECS task logs should be routed to a log group (configured in Task Definition).
 - Lambda logs go to CloudWatch by default.
 
-## Error Examples:
+## Error Examples
 
-### ```Invalid request parameters
+### Invalid request parameters
 
 HTTP Status: 400
 
+```json
 {
   "error": {
     "code": "BAD_REQUEST",
@@ -311,10 +417,11 @@ HTTP Status: 400
 }
 ```
 
-### ```Unauthorized request
+### Unauthorized request
 
 HTTP Status: 401
 
+```json
 {
   "error": {
     "code": "UNAUTHORIZED",
@@ -323,13 +430,11 @@ HTTP Status: 401
 }
 ```
 
-
-### ```Lambda invocation error
-
-### ```Internal server error
+### Internal server error
 
 HTTP Status: 500
 
+```json
 {
   "error": {
     "code": "LAMBDA_ERROR",
