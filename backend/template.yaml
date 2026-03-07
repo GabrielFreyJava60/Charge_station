@@ -26,7 +26,7 @@ Parameters:
   ImageUri:
     Type: String
     Description: ECR image URI
-    Default: docker push 773769103104.dkr.ecr.il-central-1.amazonaws.com/charging-stations:latest
+    Default: 773769103104.dkr.ecr.il-central-1.amazonaws.com/charging-stations:latest
   ContainerPort:
     Type: Number
     Default: 8000
