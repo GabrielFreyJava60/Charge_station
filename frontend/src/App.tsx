@@ -6,7 +6,8 @@ const App = () => {
     <>
       <div>
         Welcome to the Charging stations application
-        <HealthChecker defaultInfo="Didn't check yet. Click the button!" endpoint='/health'/>
+        <HealthChecker defaultInfo="Click to check!" endpoint='/health' checkerName='Check backend service'/>
+        <HealthChecker defaultInfo="Click to check!" endpoint='/health/api' checkerName='Check backend + lambda'/>
       </div>
     </>
   )

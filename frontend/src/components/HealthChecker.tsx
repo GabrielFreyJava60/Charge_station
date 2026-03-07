@@ -2,6 +2,10 @@ import { apiClient } from "@/services/api";
 import { useCallback, useState } from "react";
 import type { FC } from "react";
 import { getLogger } from "@/services/logging";
+import type { HealthResponse } from "@/types/responseTypes";
+import { config } from "@/config/env";
+
+const API_BASE_URL = config.apiBaseUrl;
 
 const logger = getLogger();
 
@@ -13,22 +17,23 @@ function getTime(): string {
 interface HealthCheckerProps {
   defaultInfo: string,
   endpoint: string,
-  buttonText?: string,
+  checkerName?: string,
 }
 
 const HealthChecker: FC<HealthCheckerProps> = ({
-  defaultInfo, endpoint, buttonText}) => {
+  defaultInfo, endpoint, checkerName}) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [checkInfo, setCheckInfo] = useState<string>(defaultInfo);
   
-  const buttonCaption = buttonText ?? `Check ${endpoint}`;
+  const buttonCaption = `Check ${endpoint}`;
+  const healthCheckUrl = `${API_BASE_URL}${endpoint}`;
 
   const handleClick = useCallback(
     async () => {
       try {
         setIsLoading(true);
-        const { status } = await apiClient.healthCheck();
-        setCheckInfo(`Successfully checked at ${getTime()}. Response: status="${status}"`);
+        const { code, status } = await apiClient.get<HealthResponse>(healthCheckUrl);
+        setCheckInfo(`Successfully checked at ${getTime()}. Status="${status}", code="${code}"`);
       }
       catch (error) {
         logger.error("Health check failed", { endpoint, error });
@@ -42,7 +47,7 @@ const HealthChecker: FC<HealthCheckerProps> = ({
   
   return (
     <div>
-      <p>Health checker for {endpoint}</p>
+      <p>{checkerName ?? `Health checker for ${endpoint}`}</p>
       <button type="button" onClick={handleClick} disabled={isLoading}>
         {isLoading? "Requesting...": buttonCaption}
       </button>

@@ -4,5 +4,4 @@ export const config = {
     apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
     apiPrefix: import.meta.env.VITE_API_URL_PREFIX,
     apiTimeout: import.meta.env.VITE_API_TIMEOUT,
-    apiHealthPath: import.meta.env.VITE_API_HEALTH_PATH,
 }
