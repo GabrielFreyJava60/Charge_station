@@ -10,6 +10,7 @@ import { stationsRouter } from './modules/stations/stations.routes';
 import { bookingsRouter } from './modules/bookings/bookings.routes';
 import { usersRouter } from './modules/users/users.routes';
 import { authRouter } from './modules/auth/auth.routes';
+import { welcomeRouter } from './modules/welcome/welcome.routes';
 
 export function createApp() {
   const app = express();
@@ -28,17 +29,21 @@ export function createApp() {
   api.use(usersRouter());
   api.use(stationsRouter());
   api.use(bookingsRouter());
+  api.use(welcomeRouter());
 
-  // Optional prefix (e.g. /api/v1)
   if (env.apiPrefix) {
     app.use(env.apiPrefix, api);
   } else {
     app.use('/', api);
   }
 
-  // Not found
-  app.use(( _req: import("express").Request, res: import("express").Response) => {
-    res.status(404).json({ code: 404, error: { message: 'Not Found' } });
+  app.use((_req, res) => {
+    res.status(404).json({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Not Found',
+      },
+    });
   });
 
   app.use(errorHandler);

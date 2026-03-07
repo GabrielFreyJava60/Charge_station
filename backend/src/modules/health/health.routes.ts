@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { HealthController } from './health.controller';
 import { buildHealthService } from './health.service';
 
 export function healthRouter(): Router {
   const router = Router();
-  const controller = new HealthController(buildHealthService());
+  const service = buildHealthService();
 
-  router.get('/health', controller.getHealth);
+  router.get('/health', async (_req, res) => {
+    const result = await service.check();
+    res.status(result.code).json(result);
+  });
+
   return router;
 }

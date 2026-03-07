@@ -1,16 +1,17 @@
 import type { NextFunction, Request, Response } from 'express';
 
-export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
-  // eslint-disable-next-line no-console
-  console.error(err);
+export function errorHandler(
+  error: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): void {
+  console.error(error);
 
-  // Basic safe error response
-  const message = err instanceof Error ? err.message : 'Unexpected error';
-  const status = 500;
-  res.status(status).json({
-    code: status,
+  res.status(500).json({
     error: {
-      message
-    }
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error',
+    },
   });
 }
