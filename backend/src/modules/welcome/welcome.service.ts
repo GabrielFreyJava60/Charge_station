@@ -1,3 +1,6 @@
+import { wrapResponseList } from "../../common/wrappers";
+import { apiResponseList } from '../../common/wrapperTypes';
+
 export type WelcomeStationDto = {
     id: string;
     name: string;
@@ -10,7 +13,7 @@ export type WelcomeStationDto = {
 
 export type WelcomeResponse = {
     code: number;
-    data: WelcomeStationDto[];
+    payload: apiResponseList<WelcomeStationDto>;
 };
 
 export class WelcomeService {
@@ -50,7 +53,7 @@ export class WelcomeService {
 
         return {
             code: 200,
-            data: filtered,
-        };
+            payload: wrapResponseList(filtered, filtered.length, filtered.length)
+        }
     }
 }

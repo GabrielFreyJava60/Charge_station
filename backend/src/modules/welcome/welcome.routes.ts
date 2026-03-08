@@ -12,9 +12,9 @@ export function welcomeRouter(): Router {
                 const city = typeof req.query.city === 'string' ? req.query.city : undefined;
                 const provider = typeof req.query.provider === 'string' ? req.query.provider : undefined;
 
-                const result = await service.list({ city, provider });
+                const {code, payload} = await service.list({ city, provider });
 
-                res.status(result.code).json(result);
+                res.status(code).json(payload);
             } catch (error) {
                 next(error);
             }
