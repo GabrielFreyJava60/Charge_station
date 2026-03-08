@@ -1,9 +1,10 @@
 import { createBrowserRouter } from 'react-router';
-import App from '@/App';
-import LoginPage from '@/pages/auth/LoginPage';
-import RegisterPage from '@/pages/auth/RegisterPage';
+import LoginPage from '@/pages/guest/LoginPage';
+import RegisterPage from '@/pages/guest/RegisterPage';
+import GuestDashboardPage from '@/pages/guest/GuestDashboardPage';
 
 const router = createBrowserRouter([
+    /* Guest (unprotected) pages */
     {
         path: '/login',
         Component: LoginPage
@@ -14,7 +15,7 @@ const router = createBrowserRouter([
     },
     {
         path: '/',
-        Component: App,
+        Component: GuestDashboardPage,
     }
 ]);
 
