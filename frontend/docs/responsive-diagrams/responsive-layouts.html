@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EV Charge — Responsive Layout Diagrams</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; padding: 24px; max-width: 1400px; margin: 0 auto; background: #f5f5f5; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    h2 { font-size: 1.1rem; color: #555; margin: 32px 0 12px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+    .diagram-section { margin-bottom: 48px; }
+    .breakpoint { font-size: 0.75rem; color: #888; margin-bottom: 8px; }
+    .wireframe { border: 2px solid #333; background: #fff; overflow: hidden; }
+    .wireframe-inner { padding: 12px; }
+    .wf-navbar { background: #e8e8e8; padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #ccc; }
+    .wf-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .wf-col { flex: 1; min-width: 0; }
+    .wf-card { border: 1px solid #999; padding: 12px; background: #fafafa; }
+    .wf-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .wf-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .wf-grid-1 { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .wf-input { border: 1px dashed #999; padding: 8px; margin: 4px 0; }
+    .wf-btn { border: 1px solid #333; padding: 8px 16px; background: #eee; display: inline-block; margin: 4px 4px 4px 0; }
+    .wf-badge { display: inline-block; padding: 2px 8px; font-size: 10px; background: #ddd; border-radius: 4px; }
+    .wf-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .wf-table th, .wf-table td { border: 1px solid #999; padding: 6px 8px; text-align: left; }
+    .wf-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+    .wf-stat { flex: 1; min-width: 80px; border: 1px solid #999; padding: 12px; text-align: center; }
+    @media (max-width: 600px) {
+      .wf-grid-3, .wf-grid-2 { grid-template-columns: 1fr; }
+      .wf-stats { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <h1>EV Charge — Responsive Layout Diagrams</h1>
+  <p>Use these for Miro whiteboard. Screenshot each section and upload to Miro.</p>
+
+  <div class="diagram-section">
+    <h2>1. Login / Register</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe" style="max-width: 400px;">
+      <div class="wireframe-inner">
+        <div style="text-align: center; margin-bottom: 16px;">⚡ EV Charge</div>
+        <div class="wf-input">Email</div>
+        <div class="wf-input">Password</div>
+        <div class="wf-btn">Sign In</div>
+        <div style="font-size: 11px; margin-top: 8px;">No account? Register</div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">TABLET (768–1023px)</div>
+    <div class="wireframe" style="max-width: 320px;">
+      <div class="wireframe-inner">
+        <div style="text-align: center; margin-bottom: 12px;">⚡ EV Charge</div>
+        <div class="wf-input">Email</div>
+        <div class="wf-input">Password</div>
+        <div class="wf-btn">Sign In</div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">MOBILE (&lt;768px)</div>
+    <div class="wireframe" style="max-width: 280px;">
+      <div class="wireframe-inner">
+        <div style="text-align: center; margin-bottom: 8px;">⚡ EV Charge</div>
+        <div class="wf-input">Email</div>
+        <div class="wf-input">Password</div>
+        <div class="wf-btn">Sign In</div>
+        <div class="wf-btn">Register</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>2. Dashboard (/)</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">⚡ EV Charge | Stations Charging History | user@test [Sign Out]</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 16px;">Welcome, username 👋<br><small>EV Charging Station Management</small></div>
+        <div class="wf-grid-3">
+          <div class="wf-card">⚡ Stations</div>
+          <div class="wf-card">📊 Charging</div>
+          <div class="wf-card">🕐 History</div>
+        </div>
+        <div class="wf-card" style="margin-top: 16px;">
+          <strong>System Health</strong><br>
+          <span class="wf-btn">Health Check</span> <span class="wf-btn">Full Check</span><br>
+          <small>● System OK — 42ms</small>
+        </div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">TABLET (768–1023px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">⚡ Stations Charging | ☰</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 12px;">Welcome, username 👋</div>
+        <div class="wf-grid-2">
+          <div class="wf-card">⚡ Stations</div>
+          <div class="wf-card">📊 Charging</div>
+          <div class="wf-card">🕐 History</div>
+          <div class="wf-card">📈 Monitor</div>
+        </div>
+        <div class="wf-card" style="margin-top: 12px;"><span class="wf-btn">Health</span> <span class="wf-btn">Full Check</span></div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">MOBILE (&lt;768px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">⚡ | ☰</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 8px;">Welcome, username 👋</div>
+        <div class="wf-grid-1">
+          <div class="wf-card">⚡ Stations</div>
+          <div class="wf-card">📊 Charging</div>
+          <div class="wf-card">🕐 History</div>
+        </div>
+        <div class="wf-card" style="margin-top: 8px;"><span class="wf-btn">Health Check</span><br><span class="wf-btn">Full Check</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>3. Station List (/stations)</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">navbar</div>
+      <div class="wireframe-inner">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+          <strong>Charging Stations</strong>
+          <span class="wf-btn">Filter: All ▼</span>
+        </div>
+        <div class="wf-grid-3">
+          <div class="wf-card">Station Alpha <span class="wf-badge">ACTIVE</span><br>📍 Address<br>Ports · Power · $</div>
+          <div class="wf-card">Station Beta <span class="wf-badge">MAINT.</span><br>📍 Address<br>Ports · Power · $</div>
+          <div class="wf-card">Station Gamma <span class="wf-badge">ACTIVE</span><br>📍 Address<br>Ports · Power · $</div>
+        </div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">TABLET (768–1023px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">navbar</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 8px;"><span class="wf-btn">Filter: All ▼</span></div>
+        <div class="wf-grid-2">
+          <div class="wf-card">Station A [ACTIVE]<br>📍 Address</div>
+          <div class="wf-card">Station B [MAINT.]<br>📍 Address</div>
+        </div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">MOBILE (&lt;768px)</div>
+    <div class="wireframe">
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 8px;"><span class="wf-btn">Filter: All ▼</span></div>
+        <div class="wf-grid-1">
+          <div class="wf-card">Station Alpha [ACTIVE]<br>📍 Ulitsa Lenina 1<br>Ports: 4 · 50kW · $0.25</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>4. Station Detail (/stations/:id)</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">← Back to stations</div>
+      <div class="wireframe-inner">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <strong>Station Alpha</strong> <span class="wf-badge">ACTIVE</span>
+        </div>
+        <div style="margin-bottom: 12px;">📍 Ulitsa Lenina 1, Moscow</div>
+        <div class="wf-row">
+          <div class="wf-stat">4 ports</div>
+          <div class="wf-stat">50 kW</div>
+          <div class="wf-stat">$0.25</div>
+          <div class="wf-stat">55.7°N</div>
+        </div>
+        <div style="margin: 12px 0;">Battery: [60] kWh · Target: [80] %</div>
+        <strong>Charging Ports</strong>
+        <div class="wf-grid-2" style="margin-top: 8px;">
+          <div class="wf-card">Port #1 [FREE]<br><span class="wf-btn">Start Charging</span></div>
+          <div class="wf-card">Port #2 [CHARGING] (in use)</div>
+        </div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">MOBILE (&lt;768px)</div>
+    <div class="wireframe">
+      <div class="wireframe-inner">
+        <div>← Back</div>
+        <div style="margin: 8px 0;">Station Alpha <span class="wf-badge">ACTIVE</span></div>
+        <div>📍 Ulitsa Lenina 1</div>
+        <div class="wf-grid-2" style="margin: 8px 0;">
+          <div class="wf-stat">4 ports</div>
+          <div class="wf-stat">50 kW</div>
+          <div class="wf-stat">$0.25</div>
+          <div class="wf-stat">55.7°N</div>
+        </div>
+        <div class="wf-card" style="margin-top: 8px;">Port #1 [FREE]<br><span class="wf-btn">Start Charging</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>5. Charging Session (/sessions/current)</h2>
+    <div class="breakpoint">DESKTOP & TABLET</div>
+    <div class="wireframe" style="max-width: 480px;">
+      <div class="wf-navbar">navbar</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 8px;">Active Charging Session</div>
+        <div class="wf-card">
+          Session #abc <span class="wf-badge">IN_PROGRESS</span><br>
+          <div style="text-align: center; margin: 16px 0; font-size: 24px;">75% charged</div>
+          <div style="background: #ddd; height: 8px; border-radius: 4px; margin: 8px 0;">████████░░</div>
+          <div class="wf-grid-2">
+            <div>18.5 kWh</div>
+            <div>$4.63</div>
+            <div>$0.25/kW</div>
+            <div>60 kWh</div>
+          </div>
+          <span class="wf-btn" style="margin-top: 12px;">Stop Charging</span>
+        </div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">MOBILE (&lt;768px)</div>
+    <div class="wireframe">
+      <div class="wireframe-inner">
+        <div class="wf-card">
+          #abc [IN_PROG]<br>
+          <div style="text-align: center; margin: 12px 0;">75%</div>
+          <div style="background: #ddd; height: 6px; border-radius: 4px;"></div>
+          <div class="wf-grid-2" style="font-size: 12px;">18.5 kWh | $4.63</div>
+          <span class="wf-btn">Stop Charging</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>6. Session History (/sessions/history)</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">navbar</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 12px;"><strong>Session History</strong></div>
+        <table class="wf-table">
+          <tr><th>Session</th><th>Station</th><th>Status</th><th>Charge</th><th>kWh</th><th>Cost</th></tr>
+          <tr><td>abc123</td><td>Alpha</td><td>COMPLETED</td><td>100%</td><td>24.5</td><td>$6.13</td></tr>
+          <tr><td>def456</td><td>Beta</td><td>STOPPED</td><td>62%</td><td>15.2</td><td>$3.80</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">MOBILE (&lt;768px) — horizontal scroll</div>
+    <div class="wireframe" style="overflow-x: auto;">
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 8px;"><strong>Session History</strong></div>
+        <table class="wf-table" style="min-width: 320px;">
+          <tr><th>Session</th><th>Station</th><th>Status</th><th>Cost</th></tr>
+          <tr><td>abc123</td><td>Alpha</td><td>COMP</td><td>$6.13</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>7. Support Dashboard (/support/dashboard)</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">navbar</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 16px;"><strong>Operations Dashboard</strong></div>
+        <div class="wf-grid-3">
+          <div class="wf-card" style="text-align: center;"><strong>12</strong><br>Active Sessions</div>
+          <div class="wf-card" style="text-align: center;"><strong>47</strong><br>Total Stations</div>
+          <div class="wf-card" style="text-align: center;"><strong>3</strong><br>Unresolved Errors</div>
+        </div>
+        <div class="wf-grid-3" style="margin-top: 16px;">
+          <div class="wf-card">Logs →</div>
+          <div class="wf-card">Stations →</div>
+          <div class="wf-card">Sessions →</div>
+        </div>
+      </div>
+    </div>
+    <div class="breakpoint" style="margin-top: 16px;">TABLET & MOBILE</div>
+    <div class="wireframe">
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 12px;"><strong>Operations Dashboard</strong></div>
+        <div class="wf-grid-1">
+          <div class="wf-card" style="text-align: center;"><strong>12</strong> Active Sessions</div>
+          <div class="wf-card" style="text-align: center;"><strong>47</strong> Total Stations</div>
+          <div class="wf-card" style="text-align: center;"><strong>3</strong> Unresolved Errors</div>
+        </div>
+        <div class="wf-grid-1" style="margin-top: 12px;">
+          <div class="wf-card">Logs →</div>
+          <div class="wf-card">Stations →</div>
+          <div class="wf-card">Sessions →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>8. Error Logs (/support/logs)</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">Stations | Charging | History | Dashboard | Logs | ...</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 12px;"><strong>Error Logs</strong></div>
+        <div class="wf-row" style="margin-bottom: 12px;">
+          <span class="wf-btn">Level ▼</span>
+          <span class="wf-btn">Status ▼</span>
+          <span class="wf-btn">Service ▼</span>
+          <span class="wf-btn">Refresh ↻</span>
+        </div>
+        <table class="wf-table">
+          <tr><th>Timestamp</th><th>Level</th><th>Service</th><th>Message</th><th>Status</th></tr>
+          <tr><td>14:32:01</td><td>ERROR</td><td>simulator</td><td>Port ERR</td><td>NEW ▼</td></tr>
+          <tr><td>14:30:44</td><td>WARN</td><td>session_svc</td><td>Timeout</td><td>IN_PROG ▼</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-section">
+    <h2>9. Admin Dashboard (/admin/dashboard)</h2>
+    <div class="breakpoint">DESKTOP (≥1024px)</div>
+    <div class="wireframe">
+      <div class="wf-navbar">... | Admin | Users | Tariffs</div>
+      <div class="wireframe-inner">
+        <div style="margin-bottom: 16px;"><strong>Admin Dashboard</strong></div>
+        <div class="wf-grid-3">
+          <div class="wf-card">Users →</div>
+          <div class="wf-card">Stations →</div>
+          <div class="wf-card">Tariffs →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
