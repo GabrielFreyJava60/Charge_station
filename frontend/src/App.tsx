@@ -10,6 +10,7 @@ import ErrorForbidden from '@/pages/error/ErrorForbidden'
 import ErrorSystem from '@/pages/error/ErrorSystem'
 
 import Dashboard from '@/pages/Dashboard'
+import GuestPage from '@/pages/GuestPage'
 import StationList from '@/pages/user/StationList'
 import StationDetail from '@/pages/user/StationDetail'
 import ChargingSession from '@/pages/user/ChargingSession'
@@ -46,8 +47,7 @@ export default function App() {
       <Route path="/error/forbidden" element={<ErrorForbidden />} />
       <Route path="/error/system" element={<ErrorSystem />} />
 
-      {/* Root → Dashboard */}
-      <Route path="/" element={<ProtectedRoute><Wrap><Dashboard /></Wrap></ProtectedRoute>} />
+      <Route path="/" element={isAuthenticated ? <Wrap><Dashboard /></Wrap> : <Wrap><GuestPage /></Wrap>} />
 
       {/* Stations — public (guests can browse, but not start charging) */}
       <Route path="/stations" element={<Wrap><StationList /></Wrap>} />

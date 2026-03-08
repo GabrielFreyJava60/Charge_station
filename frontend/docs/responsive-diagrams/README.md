@@ -17,12 +17,13 @@ Diagrams showing how each basic page renders at desktop (≥1024px), tablet (768
 
 | Page | Route | Breakpoints |
 |------|-------|-------------|
+| Guest Page | `/` | Desktop, Tablet, Mobile |
 | Login / Register | `/login`, `/register` | Desktop, Tablet, Mobile |
 | Dashboard | `/` | Desktop, Tablet, Mobile |
 | Station List | `/stations` | Desktop, Tablet, Mobile |
 | Station Detail | `/stations/:id` | Desktop, Tablet, Mobile |
 | Charging Session | `/sessions/current` | Desktop+Tablet, Mobile |
-| Session History | `/sessions/history` | Desktop, Mobile |
+| Session History | `/sessions/history` | Desktop, Tablet, Mobile |
 | Support Dashboard | `/support/dashboard` | Desktop, Tablet, Mobile |
-| Error Logs | `/support/logs` | Desktop |
-| Admin Dashboard | `/admin/dashboard` | Desktop |
+| Error Logs | `/support/logs` | Desktop, Tablet, Mobile |
+| Admin Dashboard | `/admin/dashboard` | Desktop, Tablet, Mobile |
