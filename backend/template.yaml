@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: Charging stations backend on ECS Fargate behind ALB
 
@@ -65,7 +65,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -78,7 +78,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -87,11 +87,11 @@ Resources:
       Policies:
         - PolicyName: InvokeHealthLambda
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action: lambda:InvokeFunction
-                Resource: !Sub 'arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}'
+                Resource: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}"
 
   TaskLogGroup:
     Type: AWS::Logs::LogGroup
@@ -169,13 +169,11 @@ Resources:
             - Name: API_PREFIX
               Value: /api/v1
             - Name: CORS_ORIGIN
-              Value: '*'
-            - Name: USE_LAMBDA
-              Value: true
+              Value: "*"
             - Name: AWS_REGION
               Value: !Ref AWS::Region
             - Name: HEALTH_LAMBDA_FUNCTION_NAME
-              Value: !Sub 'arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}'
+              Value: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}"
             - Name: AUTH_DISABLED
               Value: false
             - Name: COGNITO_REGION
@@ -195,7 +193,6 @@ Resources:
               awslogs-group: !Ref TaskLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
-
 
   ServiceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
