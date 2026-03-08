@@ -14,9 +14,6 @@ const API_BASE_URL: string = config.apiBaseUrl;
 const API_PREFIX: string = config.apiPrefix;
 const API_TIMEOUT: number = config.apiTimeout ?? DEFAULT_TIMEOUT;
 
-const API_HEALTH_PATH: string = config?.apiHealthPath ?? '/health';
-const API_HEALTH_URL: string = `${config.apiBaseUrl}${API_HEALTH_PATH}`;
-
 const SERVER_ERROR = 'SERVER_ERROR';
 const NETWORK_ERROR = 'NETWORK_ERROR';
 const CONFIG_ERROR = 'CONFIG_ERROR';
@@ -69,14 +66,6 @@ class ApiClient {
         );
     }
 
-    async healthCheck(): Promise<HealthResponse> {
-        logger.debug(`Health check request to ${API_HEALTH_URL}`);
-        const response = await this.client.get<HealthResponse>(API_HEALTH_URL);
-        const { status, data } = response;
-        logger.debug(`Health check response status = ${status}`);
-        return data;
-    }
-
     async get<T>(
         endpoint: string,
         query_params?: Record<string, unknown>,
@@ -88,6 +77,7 @@ class ApiClient {
         );
         const { status, data } = response;
         logger.debug(`Response status = ${status}`);
+        logger.debug(`Response data = `, data);
         return data;
     }
 
