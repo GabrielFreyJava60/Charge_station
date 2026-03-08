@@ -41,7 +41,6 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Public */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
       <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
       <Route path="/error/forbidden" element={<ErrorForbidden />} />
@@ -49,31 +48,25 @@ export default function App() {
 
       <Route path="/" element={isAuthenticated ? <Wrap><Dashboard /></Wrap> : <Wrap><GuestPage /></Wrap>} />
 
-      {/* Stations — public (guests can browse, but not start charging) */}
       <Route path="/stations" element={<Wrap><StationList /></Wrap>} />
       <Route path="/stations/:id" element={<Wrap><StationDetail /></Wrap>} />
 
-      {/* Sessions */}
       <Route path="/sessions/current" element={<ProtectedRoute><Wrap><ChargingSession /></Wrap></ProtectedRoute>} />
       <Route path="/sessions/history" element={<ProtectedRoute><Wrap><SessionHistory /></Wrap></ProtectedRoute>} />
 
-      {/* Account */}
       <Route path="/account/profile" element={<ProtectedRoute><Wrap><Profile /></Wrap></ProtectedRoute>} />
       <Route path="/account/settings" element={<ProtectedRoute><Wrap><Settings /></Wrap></ProtectedRoute>} />
 
-      {/* Tech Support */}
       <Route path="/support/dashboard" element={<ProtectedRoute roles={SUPPORT}><Wrap><SupportDashboard /></Wrap></ProtectedRoute>} />
       <Route path="/support/logs" element={<ProtectedRoute roles={SUPPORT}><Wrap><ErrorLog /></Wrap></ProtectedRoute>} />
       <Route path="/support/stations" element={<ProtectedRoute roles={SUPPORT}><Wrap><StationManagement /></Wrap></ProtectedRoute>} />
       <Route path="/support/sessions" element={<ProtectedRoute roles={SUPPORT}><Wrap><SupportSessions /></Wrap></ProtectedRoute>} />
 
-      {/* Admin */}
       <Route path="/admin/dashboard" element={<ProtectedRoute roles={ADMIN}><Wrap><AdminDashboard /></Wrap></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute roles={ADMIN}><Wrap><UserManagement /></Wrap></ProtectedRoute>} />
       <Route path="/admin/stations" element={<ProtectedRoute roles={ADMIN}><Wrap><StationAdmin /></Wrap></ProtectedRoute>} />
       <Route path="/admin/tariffs" element={<ProtectedRoute roles={ADMIN}><Wrap><TariffManagement /></Wrap></ProtectedRoute>} />
 
-      {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   )
