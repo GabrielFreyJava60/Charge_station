@@ -1,12 +1,11 @@
 import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { fetchAllSessions, forceStopSession } from '@/store/slices/sessionsSlice'
-import type { AppDispatch, RootState } from '@/store'
 import type { Session } from '@/types'
 
 export default function SupportSessions() {
-  const dispatch = useDispatch<AppDispatch>()
-  const { allSessions, loading, error } = useSelector((state: RootState) => state.sessions)
+  const dispatch = useAppDispatch()
+  const { allSessions, loading, error } = useAppSelector((state) => state.sessions)
 
   useEffect(() => {
     dispatch(fetchAllSessions('ACTIVE'))
