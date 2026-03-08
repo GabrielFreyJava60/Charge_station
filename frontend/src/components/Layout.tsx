@@ -9,7 +9,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div style={{ minHeight: '100vh', background: '#fff' }}>
       <Navbar />
-      <main style={{ maxWidth: 1280, margin: '0 auto', padding: 24 }}>
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: 24 }}>
         {children}
       </main>
     </div>

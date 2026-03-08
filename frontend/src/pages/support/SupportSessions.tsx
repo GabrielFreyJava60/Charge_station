@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { fetchAllSessions, forceStopSession } from '@/store/slices/sessionsSlice'
+import { useI18n } from '@/i18n/I18nContext'
 import type { Session } from '@/types'
 
 export default function SupportSessions() {
   const dispatch = useAppDispatch()
+  const { t } = useI18n()
   const { allSessions, loading, error } = useAppSelector((state) => state.sessions)
 
   useEffect(() => {
@@ -12,64 +14,48 @@ export default function SupportSessions() {
   }, [dispatch])
 
   const handleForceStop = (sessionId: string) => {
-    if (window.confirm('Force stop this session?')) {
+    if (window.confirm(t('supportSessions.forceStopConfirm'))) {
       dispatch(forceStopSession(sessionId))
     }
   }
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-ios-label tracking-tight">Active Sessions</h1>
-        <p className="text-base mt-1" style={{ color: 'rgba(60,60,67,0.55)' }}>
-          Monitor and manage all active charging sessions
-        </p>
-      </div>
+      <h1>{t('supportSessions.title')}</h1>
+      <p style={{ fontSize: 14, color: '#666', marginBottom: 24 }}>{t('supportSessions.subtitle')}</p>
 
-      {loading && (
-        <div className="glass rounded-3xl p-8 text-center">
-          <div className="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-3"
-            style={{ borderColor: 'rgba(10,132,255,0.2)', borderTopColor: '#0A84FF' }} />
-          <p className="text-sm" style={{ color: 'rgba(60,60,67,0.55)' }}>Loading sessions...</p>
-        </div>
-      )}
+      {loading && <p>{t('supportSessions.loading')}</p>}
 
-      {error && (
-        <div className="glass rounded-3xl p-6" style={{ border: '1px solid rgba(255,69,58,0.2)' }}>
-          <p className="text-sm font-semibold" style={{ color: '#FF453A' }}>{error as string}</p>
-        </div>
-      )}
+      {error && <p style={{ color: '#c00', padding: 8, border: '1px solid #c00' }}>{error as string}</p>}
 
       {!loading && !error && allSessions.length === 0 && (
-        <div className="glass rounded-3xl p-10 text-center">
-          <p className="text-ios-label font-semibold">No active sessions</p>
-          <p className="text-sm mt-1" style={{ color: 'rgba(60,60,67,0.5)' }}>All stations are idle</p>
+        <div style={{ padding: 24, border: '1px solid #ccc', textAlign: 'center' }}>
+          <p style={{ fontWeight: 'bold' }}>{t('supportSessions.empty')}</p>
+          <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{t('supportSessions.emptyHint')}</p>
         </div>
       )}
 
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
         {allSessions.map((session: Session) => (
-          <div key={session.sessionId} className="glass rounded-3xl p-5 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-semibold text-ios-label truncate">{session.sessionId}</p>
-              <p className="text-sm mt-0.5" style={{ color: 'rgba(60,60,67,0.55)' }}>
-                Station: {session.stationId} · Port: {session.portId}
+          <div key={session.sessionId} style={{ border: '1px solid #ccc', padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <p style={{ fontWeight: 'bold', margin: 0 }}>{session.sessionId}</p>
+              <p style={{ fontSize: 14, color: '#666', margin: '4px 0 0' }}>
+                {t('supportSessions.station')}: {session.stationId} · {t('supportSessions.port')}: {session.portId}
               </p>
-              <p className="text-xs mt-1" style={{ color: 'rgba(60,60,67,0.45)' }}>
+              <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0' }}>
                 {session.energyConsumedKwh?.toFixed(2) ?? '0.00'} kWh · {session.totalCost?.toFixed(2) ?? '0.00'} ₽
               </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="text-xs px-3 py-1 rounded-xl font-medium"
-                style={{ background: 'rgba(48,209,88,0.12)', color: '#30D158' }}>
-                {session.status}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, padding: '4px 8px', background: '#e8f5e9', border: '1px solid #ccc' }}>
+                {t(`status.${session.status}`)}
               </span>
               <button
                 onClick={() => handleForceStop(session.sessionId)}
-                className="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all"
-                style={{ background: 'rgba(255,69,58,0.1)', color: '#FF453A' }}
+                style={{ padding: '4px 12px', fontSize: 12, background: '#fff', color: '#c00', border: '1px solid #c00', cursor: 'pointer' }}
               >
-                Force Stop
+                {t('supportSessions.forceStop')}
               </button>
             </div>
           </div>

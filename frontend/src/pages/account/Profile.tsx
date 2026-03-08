@@ -5,45 +5,34 @@ export default function Profile() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-ios-label tracking-tight">Profile</h1>
-        <p className="text-base mt-1" style={{ color: 'rgba(60,60,67,0.55)' }}>
-          Your account details
-        </p>
-      </div>
+      <h1>Profile</h1>
+      <p style={{ fontSize: 14, color: '#666', marginBottom: 24 }}>Your account details</p>
 
-      <div className="glass rounded-3xl p-6 max-w-lg">
-        <div className="flex items-center gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid rgba(60,60,67,0.1)' }}>
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold"
-            style={{ background: 'linear-gradient(135deg, #0A84FF, #5AC8FA)' }}>
+      <div style={{ border: '1px solid #ccc', padding: 24, maxWidth: 400 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid #ccc' }}>
+          <div style={{ width: 48, height: 48, background: '#333', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 'bold' }}>
             {user?.email?.[0]?.toUpperCase() ?? '?'}
           </div>
           <div>
-            <p className="font-semibold text-ios-label text-lg">{user?.email}</p>
-            <span className="badge-blue mt-1 inline-block">{user?.role}</span>
+            <p style={{ margin: 0, fontWeight: 'bold' }}>{user?.email}</p>
+            <span style={{ fontSize: 12, padding: '2px 8px', border: '1px solid #ccc', display: 'inline-block', marginTop: 4 }}>{user?.role}</span>
           </div>
         </div>
 
-        <div className="space-y-4 mb-8">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: 'rgba(60,60,67,0.45)' }}>Email</p>
-            <p className="text-sm font-medium text-ios-label">{user?.email ?? '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: 'rgba(60,60,67,0.45)' }}>User ID</p>
-            <p className="text-sm font-mono text-ios-label">{user?.userId ?? '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: 'rgba(60,60,67,0.45)' }}>Role</p>
-            <p className="text-sm font-medium text-ios-label">{user?.role ?? '—'}</p>
-          </div>
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 12, color: '#666', margin: '0 0 4px' }}>Email</p>
+          <p style={{ margin: 0, fontSize: 14 }}>{user?.email ?? '—'}</p>
+        </div>
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 12, color: '#666', margin: '0 0 4px' }}>User ID</p>
+          <p style={{ margin: 0, fontSize: 14, fontFamily: 'monospace' }}>{user?.userId ?? '—'}</p>
+        </div>
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 12, color: '#666', margin: '0 0 4px' }}>Role</p>
+          <p style={{ margin: 0, fontSize: 14 }}>{user?.role ?? '—'}</p>
         </div>
 
-        <button
-          onClick={logout}
-          className="w-full py-3 rounded-2xl text-sm font-semibold transition-all duration-200"
-          style={{ color: '#FF453A', background: 'rgba(255,69,58,0.1)', border: '1px solid rgba(255,69,58,0.2)' }}
-        >
+        <button onClick={logout} style={{ padding: '8px 16px', background: '#fff', color: '#c00', border: '1px solid #c00', cursor: 'pointer', width: '100%' }}>
           Sign Out
         </button>
       </div>
