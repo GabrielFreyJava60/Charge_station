@@ -40,6 +40,7 @@ Routing is implemented with React Router in Data Mode.
   - The guard currently allows access because `userRole` is set from the incoming `role` prop.
   - Keep this in mind when extending authorization behavior.
 
+
 ### Current Pages (Blank Placeholders)
 
 #### Guest
@@ -66,3 +67,15 @@ Routing is implemented with React Router in Data Mode.
 - `/admin` -> `src/pages/admin/AdminDashboardPage.tsx`
 - `/admin/users` -> `src/pages/admin/AdminUsersPage.tsx`
 - `/admin/stations` -> `src/pages/admin/AdminStationsPage.tsx`
+
+### Frontend Health Checks
+
+Health checks are exposed on the guest landing page in `src/pages/guest/GuestDashboardPage.tsx` via the `HealthChecker` component.
+
+- **Shallow check** (`endpoint='/health'`)
+  - Validates reachability of the Node.js backend service only.
+  - In UI this is shown as "Check backend service".
+
+- **Deep check** (`endpoint='/health/api'`)
+  - Validates a broader path through the backend and AWS infrastructure (backend + Lambda integration).
+  - In UI this is shown as "Check backend + lambda".
