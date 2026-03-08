@@ -4,7 +4,6 @@ import { config } from '@/config/env';
 import { getLogger } from '@/services/logging';
 import { type ApiErrorResponse } from '@/types/apiTypes'
 import { ForbiddenError, HttpError, UnauthorizedError } from '@/types/errors'
-import { type HealthResponse } from '@/types/responseTypes';
 
 const logger = getLogger("ApiClient");
 
