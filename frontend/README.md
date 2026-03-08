@@ -1,3 +1,5 @@
+# Frontend Documentation
+
 ## Backend-Frontend API Documentation
 
 The potential backend-frontend interaction (API endpoints, request/response schemas, and data models) is described in the [specification.yaml](../specification.yaml) file at the project root. This OpenAPI 3.0 specification defines the EV Charging Public API contract.
@@ -17,76 +19,50 @@ The extension supports both YAML and JSON formats and provides a formatted, inte
 
 ---
 
-# React + TypeScript + Vite
+## Frontend Routing Model
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Routing is implemented with React Router in Data Mode.
 
-Currently, two official plugins are available:
+- Route definitions live in `src/router/router.tsx` via `createBrowserRouter(...)`.
+- The router is mounted in `src/main.tsx` with `<RouterProvider router={router} />`.
+- Data Mode docs: [React Router - Data Routing](https://reactrouter.com/start/data/routing).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Route Guards
 
-## React Compiler
+- `src/router/ProtectedRoute.tsx`
+  - Used for `/user/*` routes.
+  - Current implementation is a **mock** (`isAuthenticated = true`).
+  - On failed auth it redirects to `/login`; otherwise it renders `<Outlet />`.
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+- `src/router/RoleRoute.tsx`
+  - Used for role-scoped sections like `/support/*` and `/admin/*`.
+  - Current implementation is also a **mock placeholder**.
+  - The guard currently allows access because `userRole` is set from the incoming `role` prop.
+  - Keep this in mind when extending authorization behavior.
 
-## Expanding the ESLint configuration
+### Current Pages (Blank Placeholders)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+#### Guest
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- `/` -> `src/pages/guest/GuestDashboardPage.tsx`
+- `/login` -> `src/pages/guest/LoginPage.tsx`
+- `/register` -> `src/pages/guest/RegisterPage.tsx`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+#### User (Protected)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- `/user` -> `src/pages/user/UserDashboardPage.tsx`
+- `/user/session` -> `src/pages/user/UserCurrentSessionPage.tsx`
+- `/user/account/profile` -> `src/pages/user/UserProfilePage.tsx`
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+#### Support (Role: `support`)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `/support` -> `src/pages/support/SupportDashboardPage.tsx`
+- `/support/logs` -> `src/pages/support/SupportLogsPage.tsx`
+- `/support/stations` -> `src/pages/support/SupportStationsPage.tsx`
+- `/support/sessions` -> `src/pages/support/SupportSessionsPage.tsx`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+#### Admin (Role: `admin`)
+
+- `/admin` -> `src/pages/admin/AdminDashboardPage.tsx`
+- `/admin/users` -> `src/pages/admin/AdminUsersPage.tsx`
+- `/admin/stations` -> `src/pages/admin/AdminStationsPage.tsx`
