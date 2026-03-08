@@ -15,6 +15,7 @@ Built with React 19, Vite 7, Redux Toolkit 2, Tailwind CSS 3.4, and a structured
 | **@vitejs/plugin-react-swc** | 4 | SWC compiler — ~20× faster than Babel HMR |
 | **React Router** | v6 | Client-side routing with protected routes |
 | **Redux Toolkit** | 2 | Global state management |
+| **redux-logger** | 3 | Dev-only Redux action/state logging |
 | **Axios** | 1.13 | HTTP client with request/response interceptors |
 | **Tailwind CSS** | 3.4 | Utility-first CSS, mobile-first responsive design |
 
@@ -501,8 +502,14 @@ frontend/
     │   ├── AuthContext.tsx           — login, logout, register, role flags
     │   ├── Login.tsx / Register.tsx  — public auth pages
     │   └── ProtectedRoute.tsx        — auth + role guard → redirect
+    ├── app/
+    │   └── hooks/
+    │       ├── index.ts              — re-exports useAppDispatch, useAppSelector, useAppStore
+    │       ├── useAppDispatch.ts     — typed dispatch for thunks
+    │       ├── useAppSelector.ts     — typed selector with RootState
+    │       └── useAppStore.ts        — typed store access
     ├── store/
-    │   ├── index.ts                  — configureStore, RootState, AppDispatch
+    │   ├── index.ts                  — configureStore, RootState, AppDispatch, redux-logger (dev)
     │   └── slices/
     │       ├── authSlice.ts
     │       ├── stationsSlice.ts
@@ -565,6 +572,20 @@ frontend/
   </BrowserRouter>
 </Redux Provider>
 ```
+
+### Redux Store & Hooks
+
+**Store** (`src/store/index.ts`):
+- Configured with Redux Toolkit `configureStore`
+- **redux-logger** middleware enabled in development — logs every action and state diff to the console
+- Exports: `RootState`, `AppDispatch`, `AppStore`
+
+**App hooks** (`src/app/hooks/`):
+- `useAppDispatch()` — returns typed `AppDispatch` for thunks
+- `useAppSelector(selector)` — typed selector with `RootState` inference
+- `useAppStore()` — returns typed `AppStore` for rare cases (e.g. outside React)
+
+Use these hooks instead of raw `useDispatch` / `useSelector` for full TypeScript inference.
 
 ### Redux State Shape
 

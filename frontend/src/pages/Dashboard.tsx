@@ -1,9 +1,8 @@
-import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { checkHealth } from '@/store/slices/healthSlice';
-import { useAuth } from '@/hooks/useAuth';
-import type { AppDispatch, RootState } from '@/store';
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { useAppDispatch, useAppSelector } from '@/app/hooks'
+import { checkHealth } from '@/store/slices/healthSlice'
+import { useAuth } from '@/hooks/useAuth'
 
 interface CardItem {
   to: string;
@@ -103,8 +102,8 @@ function DashCard({ to, label, desc, gradient, glow, icon }: CardItem) {
 }
 
 export default function Dashboard() {
-  const dispatch = useDispatch<AppDispatch>();
-  const { response, loading, error, lastChecked } = useSelector((state: RootState) => state.health);
+  const dispatch = useAppDispatch()
+  const { response, loading, error, lastChecked } = useAppSelector((state) => state.health)
   const { user, isAdmin, isTechSupport } = useAuth();
 
   const handleHealthCheck = () => dispatch(checkHealth(undefined));
@@ -118,7 +117,6 @@ export default function Dashboard() {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-1">
           <h1 className="text-3xl font-bold text-ios-label tracking-tight">
@@ -130,14 +128,12 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {allCards.map((card) => (
           <DashCard key={card.to} {...card} />
         ))}
       </div>
 
-      {/* Health check */}
       <div className="glass rounded-3xl p-6">
         <h2 className="text-lg font-semibold text-ios-label mb-5">Состояние системы</h2>
 

@@ -1,13 +1,12 @@
 import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { Link } from 'react-router-dom'
 import { fetchStats } from '@/store/slices/techSupportSlice'
-import type { AppDispatch, RootState } from '@/store'
 import type { TechSupportStats } from '@/types'
 
 export default function SupportDashboard() {
-  const dispatch = useDispatch<AppDispatch>()
-  const { stats, loading, error } = useSelector((state: RootState) => state.techSupport)
+  const dispatch = useAppDispatch()
+  const { stats, loading, error } = useAppSelector((state) => state.techSupport)
 
   useEffect(() => {
     dispatch(fetchStats())
