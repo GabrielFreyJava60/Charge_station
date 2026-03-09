@@ -20,12 +20,12 @@ const CONFIG_ERROR = 'CONFIG_ERROR';
 class ApiClient {
     private readonly client: AxiosInstance;
     
-    constructor(baseUrl: string, timeout: number) {
+    constructor(baseUrl: string, apiPrefix: string, timeout: number) {
         if (!baseUrl) {
             throw new Error('API base URL is not configured');
         }
         this.client = axios.create({
-            baseURL: `${baseUrl}${API_PREFIX}`,
+            baseURL: `${baseUrl}${apiPrefix}`,
             timeout: timeout,
             headers: {
                 'Content-Type': 'application/json'
@@ -101,5 +101,6 @@ class ApiClient {
 
 export const apiClient: ApiClient = new ApiClient(
     API_BASE_URL,
+    API_PREFIX,
     API_TIMEOUT,
 );
