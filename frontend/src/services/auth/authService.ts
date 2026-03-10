@@ -7,9 +7,11 @@ import {
   type SignUpCommandInput,
   type ConfirmSignUpCommandInput,
   type InitiateAuthCommandOutput,
+  type AuthenticationResultType,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { getLogger } from '@/services/logging';
 import { config } from '@/config/env';
+import { parseJwt } from "./jwtService";
 
 const logger = getLogger("authService");
 
@@ -17,31 +19,39 @@ export const cognitoClient = new CognitoIdentityProviderClient({
   region: config.cognitoRegion,
 });
 
-export const signIn = async (username: string, password: string) => {
+function checkAuthResult(authResult: AuthenticationResultType | undefined): AuthenticationResultType {
+  if (!authResult) {
+    throw Error("No Authentication result received!");
+  }
+  logger.debug(`Token type: ${authResult.TokenType}`);
+  logger.debug(`accessToken: ${authResult.AccessToken}`);
+  if (authResult.TokenType !== "Bearer") {
+    throw Error("Wrong token type!");
+  }
+  if (!authResult.AccessToken) {
+    throw Error("No access token received!");
+  }
+
+  return authResult;
+}
+
+export const signIn = async (email: string, password: string) => {
   const params: InitiateAuthCommandInput = {
     AuthFlow: "USER_PASSWORD_AUTH",
     ClientId: config.cognitoClientId,
     AuthParameters: {
-      USERNAME: username,
+      USERNAME: email,
       PASSWORD: password,
     },
   };
-  try {
-    const command = new InitiateAuthCommand(params);
-    const output: InitiateAuthCommandOutput = await cognitoClient.send(command);
-    logger.debug("output: ", output);
-    const AuthenticationResult = output.AuthenticationResult;
-    if (AuthenticationResult) {
-          logger.debug("Authentication successful");
-          logger.debug(`Token type: ${AuthenticationResult.TokenType}`)
-          logger.debug(`accessToken: ${AuthenticationResult.AccessToken}`)
-      }
-      
-    return AuthenticationResult;
-  } catch (error) {
-    console.error("Error signing in: ", error);
-    throw error;
-  }
+  const command = new InitiateAuthCommand(params);
+  const output: InitiateAuthCommandOutput = await cognitoClient.send(command);
+  logger.debug("output: ", output);
+  const rawResult = output.AuthenticationResult;
+  const authenticationResult = checkAuthResult(rawResult);
+  logger.debug("Authentication successful");
+    
+  return authenticationResult;
 };
 
 export const signUp = async (email: string, password: string) => {
