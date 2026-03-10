@@ -10,3 +10,4 @@ export function parseJwt(token: string) {
   );
   return JSON.parse(jsonPayload);
 }
+

@@ -12,6 +12,7 @@ import {
 import { getLogger } from '@/services/logging';
 import { config } from '@/config/env';
 import { parseJwt } from "./jwtService";
+import type { AuthDataType, AuthPayload, UserRole } from "@/types";
 
 const logger = getLogger("authService");
 
@@ -19,23 +20,7 @@ export const cognitoClient = new CognitoIdentityProviderClient({
   region: config.cognitoRegion,
 });
 
-function checkAuthResult(authResult: AuthenticationResultType | undefined): AuthenticationResultType {
-  if (!authResult) {
-    throw Error("No Authentication result received!");
-  }
-  logger.debug(`Token type: ${authResult.TokenType}`);
-  logger.debug(`accessToken: ${authResult.AccessToken}`);
-  if (authResult.TokenType !== "Bearer") {
-    throw Error("Wrong token type!");
-  }
-  if (!authResult.AccessToken) {
-    throw Error("No access token received!");
-  }
-
-  return authResult;
-}
-
-export const signIn = async (email: string, password: string) => {
+export const initiateSignIn = async (email: string, password: string): Promise<AuthenticationResultType | undefined> => {
   const params: InitiateAuthCommandInput = {
     AuthFlow: "USER_PASSWORD_AUTH",
     ClientId: config.cognitoClientId,
@@ -45,14 +30,41 @@ export const signIn = async (email: string, password: string) => {
     },
   };
   const command = new InitiateAuthCommand(params);
-  const output: InitiateAuthCommandOutput = await cognitoClient.send(command);
-  logger.debug("output: ", output);
-  const rawResult = output.AuthenticationResult;
-  const authenticationResult = checkAuthResult(rawResult);
-  logger.debug("Authentication successful");
+  const cognitoResponse: InitiateAuthCommandOutput = await cognitoClient.send(command);
+  logger.debug(".initiateSignIn Cognito response: ", cognitoResponse);
+  const authenticationResult = cognitoResponse.AuthenticationResult;
+  logger.debug(".initiateSignIn authentication result: ", authenticationResult);
     
   return authenticationResult;
 };
+
+export const signIn = async (email: string, password: string): Promise<AuthDataType> => {
+  const authResult = await initiateSignIn(email, password);
+  if (!authResult) {
+    throw Error("Empty authentication result!");
+  }
+  const { AccessToken, IdToken } = authResult;
+  if (!AccessToken) {
+    throw Error("No access token retrieved!");
+  }
+  const payload: AuthPayload = parseJwt(IdToken ?? AccessToken);
+  const sub = payload?.sub;
+  const groups = payload["cognito:groups"] ?? [];
+  if (!sub) {
+    throw Error("No authentication subject retrieved from ID token!");
+  }
+  let userRole: UserRole = 'USER';
+  if (groups.includes("administrators")) {
+    userRole = 'ADMIN';
+  }
+  else if (groups.includes("support")) {
+    userRole = 'SUPPORT';
+  }
+  return {
+    user: { id: sub, email: payload.email ?? email, userRole },
+    session: {accessToken: AccessToken},
+  }
+}
 
 export const signUp = async (email: string, password: string) => {
   const params: SignUpCommandInput = {
