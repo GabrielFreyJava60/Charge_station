@@ -24,6 +24,11 @@ export const env = {
   cognitoUserPoolId: String(process.env.COGNITO_USER_POOL_ID ?? ''),
   cognitoClientId: String(process.env.COGNITO_CLIENT_ID ?? ''),
 
+  // users / admin
+  userManagementLambdaFunctionName: String(
+    process.env.USER_MANAGEMENT_LAMBDA_FUNCTION_NAME ?? 'charging-stations-user-management'
+  ),
+
   // misc
   environment: String(process.env.ENVIRONMENT ?? 'local'),
   logLevel: String(process.env.LOG_LEVEL ?? 'info')

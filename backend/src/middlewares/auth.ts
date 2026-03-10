@@ -1,6 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import { env } from '../config/env';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('auth');
 
 export interface AuthUser {
   sub: string;
@@ -40,12 +43,17 @@ function getJwks() {
 
 export async function verifyCognitoJwt(req: Request, res: Response, next: NextFunction) {
   if (env.authDisabled) {
+    logger.warn('Authentication is disabled, injecting local user');
     req.user = { sub: 'local-user', username: 'local', raw: {} };
     return next();
   }
 
   const token = getBearerToken(req);
   if (!token) {
+    logger.warn('Missing Authorization Bearer token', {
+      path: req.path,
+      method: req.method
+    });
     return res.status(401).json({ code: 401, error: { message: 'Missing Authorization Bearer token' } });
   }
 
@@ -70,12 +78,18 @@ export async function verifyCognitoJwt(req: Request, res: Response, next: NextFu
     };
 
     if (!req.user.sub) {
+      logger.error('Invalid token: missing sub', { path: req.path, method: req.method });
       return res.status(401).json({ code: 401, error: { message: 'Invalid token (missing sub)' } });
     }
 
     return next();
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Invalid token';
+    logger.error('JWT verification failed', {
+      path: req.path,
+      method: req.method,
+      error: message
+    });
     return res.status(401).json({ code: 401, error: { message } });
   }
 }
@@ -86,6 +100,13 @@ export function requireGroups(allowed: string[]) {
     const groups = req.user?.groups ?? [];
     const ok = allowed.some((g) => groups.includes(g));
     if (!ok) {
+      logger.error('Access denied: insufficient role', {
+        path: req.path,
+        method: req.method,
+        userId: req.user?.sub,
+        userGroups: groups,
+        requiredGroups: allowed
+      });
       return res.status(403).json({ code: 403, error: { message: 'Forbidden' } });
     }
     next();
