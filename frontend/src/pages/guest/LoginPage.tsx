@@ -1,4 +1,10 @@
 import { useState } from "react";
+import { getLogger } from "@/services/logging";
+
+const logger = getLogger("SignIn");
+
+const handleSignUp = () => { logger.debug("Signing up") };
+const handleSignIn = () => { logger.debug("Signing In") };
 
 const LoginPage = () => {
     const [isRegister, setIsRegister] = useState<boolean>(false);
