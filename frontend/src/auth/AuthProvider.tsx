@@ -3,6 +3,7 @@ import type { UserRole, AuthSession, User, AuthContextType } from "@/types";
 import { AuthContext } from "./context";
 import { signIn, signUp } from "@/services/auth/authService";
 import { getLogger } from "@/services/logging";
+import { apiClient } from "@/services/api";
 
 const logger = getLogger("Auth");
 
@@ -20,6 +21,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
             setUser(authResult.user);
             setUserRole(authResult.user.userRole);
             setSession(authResult.session);
+            apiClient.setToken(authResult.session.accessToken);
             logger.debug("SIGN IN SUCCESSFUL");
 
             return authResult.user;
@@ -29,6 +31,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
             setUser(null);
             setUserRole(null);
             setSession(null);
+            apiClient.setToken(null);
 
             throw error;
         }
@@ -41,6 +44,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         setUser(null);
         setUserRole(null);
         setSession(null);
+        apiClient.setToken(null);
         logger.debug("SIGN OUT DONE");
     }
 
