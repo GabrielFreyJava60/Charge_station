@@ -2,7 +2,6 @@ import { createBrowserRouter } from 'react-router';
 import LoginPage from '@/pages/guest/LoginPage';
 import RegisterPage from '@/pages/guest/RegisterPage';
 import GuestDashboardPage from '@/pages/guest/GuestDashboardPage';
-import ProtectedRoute from './ProtectedRoute';
 import UserDashboardPage from '@/pages/user/UserDashboardPage';
 import UserCurrentSessionPage from '@/pages/user/UserCurrentSessionPage';
 import UserProfilePage from '@/pages/user/UserProfilePage';
@@ -15,13 +14,14 @@ import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminStationsPage from '@/pages/admin/AdminStationsPage';
 import RoleRoute from './RoleRoute';
 import Layout from '@/pages/Layout';
+import ConfirmPage from '@/pages/guest/ConfirmPage';
 
 const router = createBrowserRouter([
     /* Unprotected GUEST pages */
     { path: '/', Component: GuestDashboardPage, },
-    //{ path: '/welcome', Component: GuestDashboardPage, },
     { path: '/login', Component: LoginPage, },
-    {path: '/register', Component: RegisterPage, },
+    { path: '/register', Component: RegisterPage, },
+    { path: '/confirm', Component: ConfirmPage, },
     
     /* Protected USER pages */
     {
