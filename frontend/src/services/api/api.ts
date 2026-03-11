@@ -19,6 +19,7 @@ const CONFIG_ERROR = 'CONFIG_ERROR';
 
 class ApiClient {
     private readonly client: AxiosInstance;
+    private token: string | null = null;
     
     constructor(baseUrl: string, apiPrefix: string, timeout: number) {
         if (!baseUrl) {
@@ -63,6 +64,14 @@ class ApiClient {
                 throw new HttpError(message, request ? NETWORK_ERROR : CONFIG_ERROR);
             }
         );
+    }
+
+    getToken(): string | null {
+        return this.token;
+    }
+
+    setToken(token: string | null) {
+        this.token = token;
     }
 
     async get<T>(
