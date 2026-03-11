@@ -184,7 +184,7 @@ Resources:
               Value: !Ref AWS::Region
             - Name: HEALTH_LAMBDA_FUNCTION_NAME
               Value: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}"
-              - Name: USER_INFO_LAMBDA_FUNCTION_NAME
+            - Name: USER_INFO_LAMBDA_FUNCTION_NAME
               Value: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaUserInfoName}"
             - Name: AUTH_DISABLED
               Value: false
