@@ -1,9 +1,9 @@
-import { useState, type FC, type PropsWithChildren } from "react";
+import { useEffect, useState, type FC, type PropsWithChildren } from "react";
 import type { UserRole, AuthSession, User, AuthContextType } from "@/types";
 import { AuthContext } from "./context";
 import { signIn, signUp } from "@/services/auth/authService";
 import { getLogger } from "@/services/logging";
-import { apiClient } from "@/services/api";
+import { saveUser, restoreUser, saveToken, restoreToken, clearSessionStorage } from "./persistence";
 
 const logger = getLogger("Auth");
 
@@ -13,6 +13,18 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     const [session, setSession] = useState<AuthSession | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
+    useEffect(() => {
+        const user = restoreUser();
+        if (user) {
+            setUser(user);
+            setUserRole(user.userRole);
+        }
+        const token = restoreToken();
+        if (token) {
+            setSession({ accessToken: token });
+        }
+    }, []);
+
     
     const signInHandler = async (email: string, password: string): Promise<User> => {
         setLoading(true);
@@ -21,18 +33,14 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
             setUser(authResult.user);
             setUserRole(authResult.user.userRole);
             setSession(authResult.session);
-            apiClient.setToken(authResult.session.accessToken);
+            saveUser(authResult.user);
+            saveToken(authResult.session.accessToken);
             logger.debug("SIGN IN SUCCESSFUL");
 
             return authResult.user;
         }
         catch (error) {
             logger.error("Error while signing in: ", error);
-            setUser(null);
-            setUserRole(null);
-            setSession(null);
-            apiClient.setToken(null);
-
             throw error;
         }
         finally {
@@ -44,7 +52,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         setUser(null);
         setUserRole(null);
         setSession(null);
-        apiClient.setToken(null);
+        clearSessionStorage();
         logger.debug("SIGN OUT DONE");
     }
 
