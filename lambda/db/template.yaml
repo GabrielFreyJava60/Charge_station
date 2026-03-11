@@ -315,9 +315,8 @@ Resources:
     Properties:
       FunctionName: charging-stations-confirm-console-created-admin
       Handler: confirm_console_created_admin.handler
-      CodeUri: write
+      CodeUri: .
       Layers:
-        - !Ref CommonToolsLayer
         - !Ref CommonLoggerLayer
       Description: Confirm console created admin
       Environment:

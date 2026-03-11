@@ -19,6 +19,7 @@ def invoke_confirm_console_created_admin(account_id: str, username: str, passwor
         "username": username,
         "password": password,
         "new_password": new_password,
+        "trigger": "script_run",
     }
 
     response = lambda_client.invoke(

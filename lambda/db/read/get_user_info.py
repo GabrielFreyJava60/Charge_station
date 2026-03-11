@@ -2,7 +2,7 @@ import os
 import json
 import boto3
 import psycopg2
-from utils.logger import logger
+from utils.logger import logger, log_audit
 
 _conn = None
 
@@ -57,9 +57,25 @@ def handler(event, context):
     try:
         user_id = extract_user_id_from_event(event)
         user_info = get_user_info(user_id)
+        log_audit(
+            "INFO",
+            message="user info fetched successfully",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="FETCH_USER_INFO",
+            status="SUCCESS",
+            requestId=context.aws_request_id,
+        )
         return build_json(user_info)
     except Exception as e:
-        logger.error(f"Error getting user info: {e}", exc_info=True)
-        return {
-            "error": str(e)
-        }
+        log_audit(
+            "ERROR",
+            message="error getting user info",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="FETCH_USER_INFO",
+            status="ERROR",
+            errorMessage=str(e),
+            requestId=context.aws_request_id,
+        )
+        raise Exception(f"Error getting user info: {e}")

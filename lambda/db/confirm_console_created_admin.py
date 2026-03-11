@@ -2,7 +2,7 @@ import json
 import os
 import boto3
 from botocore.exceptions import ClientError
-from utils.logger import logger
+from utils.logger import logger, log_audit
 
 CLIENT_ID = os.environ["COGNITO_CLIENT_ID"]          # from template
 COGNITO_REGION = os.environ.get("COGNITO_REGION", "il-central-1")
@@ -32,18 +32,12 @@ def respond_to_new_password_challenge(
         },
     )
 
-
 def handler(event, context):
+    logger.info(f"Handler called with event: {event}")
     try:
-
-        if isinstance(event, str):
-            request_body = json.loads(event)
-        else:
-            request_body = event or {}
-
-        username = request_body.get("username")
-        password = request_body.get("password")
-        new_password = request_body.get("new_password")
+        username = event.get("username")
+        password = event.get("password")
+        new_password = event.get("new_password")
 
         if not username or not password:
             raise ValueError("Username and password are required")
@@ -51,7 +45,6 @@ def handler(event, context):
         client = boto3.client("cognito-idp", region_name=COGNITO_REGION)
 
         resp = initiate_auth(client, username, password)
-        logger.info(f"initiate_auth response: {json.dumps(resp, default=str)}")
 
         challenge_name = resp.get("ChallengeName")
 
@@ -75,28 +68,45 @@ def handler(event, context):
             message = "Login successful"
 
         auth_result = resp.get("AuthenticationResult", {}) or {}
-
+        log_audit(
+            "INFO",
+            message="console created admin confirmed successfully",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="CONFIRM_CONSOLE_CREATED_ADMIN",
+            status="SUCCESS",
+            requestId=context.aws_request_id,
+            trigger=event.get("trigger"),
+        )
         return {
-            "statusCode": 200,
-            "body": json.dumps(
-                {
-                    "message": message,
-                    "accessToken": auth_result.get("AccessToken"),
-                    "idToken": auth_result.get("IdToken"),
-                    "refreshToken": auth_result.get("RefreshToken"),
-                }
-            ),
+            "message": message,
+            "accessToken": auth_result.get("AccessToken"),
+            "idToken": auth_result.get("IdToken"),
+            "refreshToken": auth_result.get("RefreshToken"),
         }
-
     except ClientError as e:
-        logger.error(f"Cognito client error: {e}", exc_info=True)
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"message": "Invalid username or password"}),
-        }
+        log_audit(
+            "ERROR",
+            message="error confirming console created admin",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="CONFIRM_CONSOLE_CREATED_ADMIN",
+            status="ERROR",
+            errorMessage=str(e),
+            requestId=context.aws_request_id,
+            trigger=event.get("trigger"),
+            )
+        raise Exception(f"Invalid username or password: {e}")
     except Exception as e:
-        logger.error(f"Unhandled error: {e}", exc_info=True)
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": str(e)}),
-        }
+        log_audit(
+            "ERROR",
+            message="unhandled error",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="CONFIRM_CONSOLE_CREATED_ADMIN",
+            status="ERROR",
+            errorMessage=str(e),
+            requestId=context.aws_request_id,
+            trigger=event.get("trigger"),
+        )
+        raise Exception(f"Unhandled error: {e}")

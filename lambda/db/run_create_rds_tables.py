@@ -12,10 +12,13 @@ CREATE_RDS_TABLES_FUNCTION_NAME = os.getenv("CREATE_RDS_TABLES_FUNCTION_NAME", "
 
 def main():
     client = boto3.client("lambda", region_name=AWS_REGION)
+    payload = {
+        "trigger": "script_run",
+    }
     resp = client.invoke(
         FunctionName=f"arn:aws:lambda:{AWS_REGION}:{AWS_LAMBDA_HOST_ACCOUNT}:function:{CREATE_RDS_TABLES_FUNCTION_NAME}",
         InvocationType="RequestResponse",
-        Payload=b"{}",
+        Payload=json.dumps(payload).encode("utf-8"),
     )
     payload = resp["Payload"].read().decode()
     print("StatusCode:", resp.get("StatusCode"))

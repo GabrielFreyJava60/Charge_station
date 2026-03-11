@@ -2,7 +2,7 @@ import json
 import os
 import boto3
 import psycopg2
-from utils.logger import logger
+from utils.logger import logger, log_audit
 
 def get_secret():
     secret_arn = os.getenv("DB_SECRET_ARN")
@@ -46,10 +46,30 @@ def create_tables():
     finally:
         conn.close()
 def handler(event, context):
+    logger.info(f"Handler called with event: {event}")
     try:
+        log_audit(
+            "INFO",
+            message="tables created or already exist",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="CREATE_RDS_TABLES",
+            status="SUCCESS",
+            requestId=context.aws_request_id,
+            trigger=event.get("trigger"),
+        )
         create_tables()
-        logger.info("Tables created or already exist")
-        return {"statusCode": 200, "body": json.dumps("Tables created or already exist")}
+        return {"message": "Tables created or already exist"}
     except Exception as e:
-        logger.error(f"Error creating tables: {str(e)}")
-        return {"statusCode": 500, "body": json.dumps(str(e))}
+        log_audit(
+            "ERROR",
+            message="error creating tables",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="CREATE_RDS_TABLES",
+            status="ERROR",
+            errorMessage=str(e),
+            requestId=context.aws_request_id,
+            trigger=event.get("trigger"),
+        )
+        raise Exception(f"Error creating tables: {e}")

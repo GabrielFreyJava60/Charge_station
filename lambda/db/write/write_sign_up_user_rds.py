@@ -5,7 +5,7 @@ import psycopg2
 from utils.logger import logger
 from datetime import datetime
 from data_types.db_instance_types import UserInstance
-
+from utils.logger import log_audit
 
 
 _conn = None
@@ -87,6 +87,27 @@ def handler(event, context):
     logger.info(f"Handler called with event: {event}")
     try:
         write_user_to_rds(event)
+        log_audit(
+            "INFO",
+            message="user written to RDS successfully",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="WRITE_USER_TO_RDS",
+            status="SUCCESS",
+            requestId=context.aws_request_id,
+            trigger=event.get("triggerSource"),
+        )
     except Exception as e:
-        logger.error(f"Error writing user to RDS: {e}", exc_info=True)
+        log_audit(
+            "ERROR",
+            message="error writing user to RDS",
+            userId=event.get("user_id"),
+            service=context.function_name,
+            event="WRITE_USER_TO_RDS",
+            status="ERROR",
+            errorMessage=str(e),
+            requestId=context.aws_request_id,
+            trigger=event.get("triggerSource"),
+        )
+        raise Exception(f"Error writing user to RDS: {e}")
     return event
