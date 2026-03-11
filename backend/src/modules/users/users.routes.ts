@@ -10,6 +10,7 @@ export function usersRouter(): Router {
   const controller = new UsersController(buildUsersService());
 
   // Доступно любому авторизованному пользователю только для своего аккаунта
+  router.get('/me', verifyCognitoJwt, controller.getMe);
   router.get('/users/me', verifyCognitoJwt, controller.getMe);
   router.patch('/users/me/profile', verifyCognitoJwt, controller.updateMyProfile);
 

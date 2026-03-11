@@ -28,6 +28,9 @@ export const env = {
   userManagementLambdaFunctionName: String(
     process.env.USER_MANAGEMENT_LAMBDA_FUNCTION_NAME ?? 'charging-stations-user-management'
   ),
+  userInfoLambdaFunctionName: String(
+    process.env.USER_INFO_LAMBDA_FUNCTION_NAME ?? 'charging-stations-get-user-info'
+  ),
 
   // misc
   environment: String(process.env.ENVIRONMENT ?? 'local'),
