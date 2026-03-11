@@ -16,7 +16,6 @@ interface SignInFormProps{
 const SignInForm: FC<SignInFormProps> = ({isRegister, submitHandler}) => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  //const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [confirmPassword, setConfirmPassword] = useState<string | undefined>(undefined);
   
   const navigate = useNavigate();
