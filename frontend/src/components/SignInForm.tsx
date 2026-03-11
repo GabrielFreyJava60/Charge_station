@@ -1,8 +1,5 @@
 import { useState, type FC } from "react";
 import { useNavigate } from "react-router";
-//import { getLogger } from "@/services/logging";
-
-//const logger = getLogger("SignIn");
 
 interface SignInFormProps{
   isRegister: boolean;
