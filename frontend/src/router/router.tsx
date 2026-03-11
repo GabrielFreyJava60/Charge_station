@@ -14,6 +14,7 @@ import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminStationsPage from '@/pages/admin/AdminStationsPage';
 import RoleRoute from './RoleRoute';
+import Layout from '@/pages/Layout';
 
 const router = createBrowserRouter([
     /* Unprotected GUEST pages */
@@ -25,16 +26,21 @@ const router = createBrowserRouter([
     /* Protected USER pages */
     {
         path: "/user",
-        element: <ProtectedRoute />,
+        element: <RoleRoute role="user" />,
         children: [
-            { Component: UserDashboardPage, index: true, },
-            { path: "session", Component: UserCurrentSessionPage, },
             {
-                path: "account",
+                element: <Layout />,
                 children: [
-                    { path: "profile", Component: UserProfilePage },
+                    { Component: UserDashboardPage, index: true, },
+                    { path: "session", Component: UserCurrentSessionPage, },
+                    {
+                        path: "account",
+                        children: [
+                            { path: "profile", Component: UserProfilePage },
+                        ]
+                    },
                 ]
-            },
+            }
         ]
 
     },
@@ -43,10 +49,15 @@ const router = createBrowserRouter([
         path: "/support",
         element: <RoleRoute role="support" />,
         children: [
-            { index: true, Component: SupportDashboardPage },
-            { path: "logs", Component: SupportLogsPage },
-            { path: "stations", Component: SupportStationsPage },
-            { path: "sessions", Component: SupportSessionsPage },
+            {
+                element: <Layout />,
+                children: [
+                    { index: true, Component: SupportDashboardPage },
+                    { path: "logs", Component: SupportLogsPage },
+                    { path: "stations", Component: SupportStationsPage },
+                    { path: "sessions", Component: SupportSessionsPage },
+                ]
+            }
         ],
     },
 
@@ -55,10 +66,15 @@ const router = createBrowserRouter([
         path: "/admin",
         element: <RoleRoute role="admin" />,
         children: [
-            { index: true, Component: AdminDashboardPage },
-            { path: "users", Component: AdminUsersPage },
-            { path: "stations", Component: AdminStationsPage },
-        ],
+            {
+                element: <Layout />,
+                children: [
+                    { index: true, Component: AdminDashboardPage },
+                    { path: "users", Component: AdminUsersPage },
+                    { path: "stations", Component: AdminStationsPage },
+                ],
+            }
+        ]
     },
 ]);
 
