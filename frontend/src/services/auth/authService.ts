@@ -41,17 +41,17 @@ export const initiateSignIn = async (email: string, password: string): Promise<A
 export const signIn = async (email: string, password: string): Promise<AuthDataType> => {
   const authResult = await initiateSignIn(email, password);
   if (!authResult) {
-    throw Error("Empty authentication result!");
+    throw Error("Empty authentication result");
   }
   const { AccessToken, IdToken } = authResult;
   if (!AccessToken) {
-    throw Error("No access token retrieved!");
+    throw Error("No access token retrieved");
   }
   const payload: AuthPayload = parseJwt(IdToken ?? AccessToken);
   const sub = payload?.sub;
   const groups = payload["cognito:groups"] ?? [];
   if (!sub) {
-    throw Error("No authentication subject retrieved from ID token!");
+    throw Error("Wrong token format");
   }
   let userRole: UserRole = 'USER';
   if (groups.includes("administrators")) {
