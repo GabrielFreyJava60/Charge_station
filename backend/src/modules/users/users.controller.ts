@@ -22,14 +22,12 @@ export class UsersController {
       return res.status(401).json({ code: 401, error: { message: 'Unauthorized' } });
     }
 
+    const userId = req.user.sub;
+    const userInfo = await this.service.getMyInfo(userId);
+
     res.json({
       code: 200,
-      data: {
-        userId: req.user.sub,
-        email: req.user.email,
-        username: req.user.username,
-        groups: req.user.groups ?? []
-      }
+      data: userInfo
     });
   };
 

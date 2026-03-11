@@ -80,8 +80,9 @@ export const signUp = async (email: string, password: string) => {
   };
   try {
     const command = new SignUpCommand(params);
+    logger.debug(".signUp command: ", command);
     const response = await cognitoClient.send(command);
-    console.log("Sign up success: ", response);
+    console.log("Sign up success, Response=", response);
     return response;
   } catch (error) {
     console.error("Error signing up: ", error);
