@@ -33,6 +33,18 @@ class ApiClient {
             },
         });
         logger.debug(`Created API client. Params: url=${baseUrl}, timeout=${timeout}`);
+        this.client.interceptors.request.use(
+            (config) => {
+                const token = this.getToken();
+                if (token) {
+                    config.headers = config.headers ?? {};
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+                
+                return config;
+            }
+        );
+
         this.client.interceptors.response.use(
             (response) => response,
             (error: AxiosError<ApiErrorResponse>) => {
@@ -51,10 +63,10 @@ class ApiClient {
                     const apiError = data?.error;
                     const errorMessage = apiError?.message ?? message;
                     const errorCode = apiError?.code ?? SERVER_ERROR;
-                    if (status == 401) {
+                    if (status === 401) {
                         throw new UnauthorizedError(errorMessage);
                     }
-                    if (status == 403) {
+                    if (status === 403) {
                         throw new ForbiddenError(errorMessage);
                     }
                     throw new HttpError(errorMessage, errorCode, status);
@@ -84,8 +96,7 @@ class ApiClient {
             {params: query_params},
         );
         const { status, data } = response;
-        logger.debug(`Response status = ${status}`);
-        logger.debug(`Response data = `, data);
+        logger.debug("API response", { status, data });
         return data;
     }
 
@@ -95,7 +106,7 @@ class ApiClient {
         config?: AxiosRequestConfig
     ): Promise<T> {
         logger.debug('POST request ', { endpoint, params: config?.params });
-        logger.debug(`POST request data: `, body);
+        logger.debug("POST request", { endpoint, body });
         const response = await this.client.post<T>(
             endpoint,
             body,
