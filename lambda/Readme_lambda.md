@@ -1,55 +1,160 @@
-# Charging Stations Control System – Lambda Microservices
+# Charging Stations – Lambda Backends
 
-Lambda functions used as backends for the Charging Stations Control System.  
-They are invoked directly (e.g. from Node.js) and return a result.  
-There is no SNS subscription; callers invoke the functions and get a response.
+Lambda functions for the Charging Stations Control System. They are invoked directly (e.g. from Node.js or run scripts) or by AWS (Cognito Post Confirmation trigger). Callers get a synchronous response; there is no SNS subscription.
 
-## Access
+---
 
-Invoke permission is granted at the **AWS account** level.  
-Provide the caller’s AWS Account ID when deploying using sam deploy --guided (or via samconfig / parameter overrides) so that account can invoke these Lambdas.  
-Provide your own AWS Account ID in LAMBDA_ACCOUNT_ID variable in GitHub repo → Settings → Secrets and variables → Actions → Variables
-so that other contributors can access your lambdas  
-For each additional AWS account that you want to grant access to your functions, add corresponding parameter (eg. InvokerAccountId)  
+## Repository layout
 
+| Path | Purpose |
+|------|---------|
+| `lambda/routes` | Route Lambdas (e.g. health). One SAM template. |
+| `lambda/db` | DB and auth Lambdas (RDS, Cognito), run scripts, RDS table creation. One SAM template. |
+| `lambda/layers/common` | Shared layer: logger, `log_audit`, data types, utils. |
+| `lambda/tests/integration` | Integration tests that invoke deployed Lambdas. |
 
-## Routes
+---
 
-Route lambdas are deployed from lambda/routes  
+## Deployment
 
-Route lambdas are deployed via a single template.yaml file, so with addition of new route lambdas add them as new resources in template.yaml, also add permissions to invoke them for cross-account usage.
+### Prerequisites
 
-### `/health` – Health check
+- **Docker Desktop** – installed and running (needed for `sam build --use-container` when building the **db** stack; e.g. psycopg2).
+- **AWS Secrets Manager** – a secret with PostgreSQL fields: host, port, dbname, username, password. The **db** template takes its ARN via `DBSecretArn`.
+- **Cognito User Pool** – **ALLOW_USER_PASSWORD_AUTH** enabled; email and username as required attributes. Template parameters: `CognitoClientId`, `CognitoUserPoolArn`.
 
-- **Payload:** Empty (e.g. `{}`).
+### DB stack
+
+From **`lambda/db`**:
+
+```bash
+sam build --use-container
+sam deploy --guided   # first time; then sam deploy
+```
+
+Use `--use-container` so dependencies (e.g. psycopg2 on Python 3.12) build correctly. On first deploy, set VPC, subnets, DB secret ARN, Cognito IDs, invoker account ID(s); save to `samconfig.toml` for later runs.
+
+### Routes stack
+
+From **`lambda/routes`**:
+
+```bash
+sam build
+sam deploy --guided   # first time; then sam deploy
+```
+
+No Docker required. Provide invoker account ID(s) when prompted.
+
+### Adding a Cognito self-signup user
+
+1. Sign up:
+   ```bash
+   aws cognito-idp sign-up --region <region> --client-id <client-id> --username <username> --password '<password>' --user-attributes Name=email,Value=<email>
+   ```
+2. Confirm with the code from email:
+   ```bash
+   aws cognito-idp confirm-sign-up --region <region> --client-id <client-id> --username <username> --confirmation-code <code>
+   ```
+
+---
+
+## Access (cross-account)
+
+Invoke permission is per **AWS account**. At deploy time, set:
+
+- **InvokerAccountIdA** (and optionally **InvokerAccountIdB**) in the template parameters so those accounts can call the Lambdas.
+- For CI or scripts, use the deployer account ID (e.g. `LAMBDA_ACCOUNT_ID`) when invoking by ARN.
+
+---
+
+## Routes stack – functions
+
+### Health – `charging-stations-health`
+
+- **Payload:** `{}` or any JSON.
 - **Response:** `{"code": 200, "status": "running"}`.
 
-#### Integration test
+**Integration test** (from `lambda`, with boto3 and IAM allowing `lambda:InvokeFunction`):
 
-Prerequisites: Lambdas must be deployed, boto3 library installed, AWS IAM role that allows lambda:InvokeFunction  
-All tests are run from /lambda directory  
-Provide desired REGION variable in .env file in /lambda directory to specify the regional location of AWS lambdas, `'il-central-1'` by default
+```bash
+python -m tests.integration.routes.health_invoker <account_id>
+```
 
-##### `/health` – Health check
+Exits 0 on success; on failure prints assertion and traceback.
 
-The health route has an integration test that invokes the deployed Lambda.  
+---
 
-Run test from deployer AWS account with  
+## DB stack – functions
 
-`python -m tests.integration.routes.health_invoker` **Your AWS Account ID**  
+The **db** template provisions RDS (PostgreSQL), VPC/security groups, Secrets Manager access, four Lambdas, and permissions (cross-account + Cognito for WriteUserRDS).
 
-If the test **passes**, the script exits with code 0 and prints nothing. On failure, it prints an assertion error and traceback.
+| Function | Purpose | Invoker |
+|----------|---------|--------|
+| **charging-stations-create-rds-tables** | Create RDS tables (e.g. `users`). | Script or cross-account. |
+| **charging-stations-write-user-rds** | Insert user into RDS after sign-up. | Cognito (Post Confirmation trigger). |
+| **charging-stations-get-user-info** | Return user by `user_id` from RDS. | Backend or cross-account. |
+| **charging-stations-confirm-console-created-admin** | Cognito auth (initiate auth, new-password challenge). | Script or backend. |
 
-To run the test from non-deployer AWS account, get LAMBDA_ACCOUNT_ID from 
-GitHub repo → Settings → Secrets and variables → Actions → Variables  
-Then run one of these commands from /lambda directory passing LAMBDA_ACCOUNT_ID as an argument:  
+### Request/response (plain JSON)
 
-Example 1  
+- **CreateRDSTables** – Payload optional (e.g. `{"trigger": "script_run"}`). Returns handler result.
+- **WriteUserRDS** – Event from Cognito (`request.userAttributes`, `userName`). Must **return the same event** so Cognito continues.
+- **GetUserInfo** – Payload: `{"user_id": "<uuid>"}`. Response: `{"userId", "username", "email", "phone", "role", "status", "createdAt", "updatedAt"}` or `{"error": "..."}`.
+- **ConfirmConsoleCreatedAdmin** – Payload: `{"username", "password", "new_password"}` (`new_password` only when first login / NEW_PASSWORD_REQUIRED). Response: `{"message", "accessToken", "idToken", "refreshToken"}` or exception.
 
-`python -m tests.integration.routes.health_invoker` **LAMBDA_ACCOUNT_ID**  
+### Run scripts
 
-Example 2:  
+From **`lambda/db`** (or `lambda` with env set). Ensure `.env` has the right region, account, and function names (see `.env.example`).
 
-`python -m tests.integration.routes.health_invoker --account` **LAMBDA_ACCOUNT_ID**  
+**Create RDS tables (run once after deploy):**
 
-  
+```bash
+python run_create_rds_tables.py
+```
+
+**Confirm console-created admin (first login or password change):**
+
+```bash
+python run_confirm_console_created_admin.py <account_id> <username> <password> [new_password]
+```
+
+`new_password` is required only when Cognito returns the NEW_PASSWORD_REQUIRED challenge.
+
+### Integration test – GetUserInfo
+
+From **`lambda`**:
+
+```bash
+python -m tests.integration.read.get_user_info_lambda_invoker <account_id> <user_id>
+```
+
+Requires a real `user_id` in RDS. Asserts `StatusCode == 200` and `response_json['userId'] == user_id`.
+
+---
+
+## Environment variables
+
+Copy **`lambda/.env.example`** to **`lambda/.env`** and set values for local runs and integration tests.
+
+| Variable | Use |
+|----------|-----|
+| **REGION** / **AWS_REGION** | AWS region (e.g. `il-central-1`). |
+| **AWS_LAMBDA_HOST_ACCOUNT** | Account where DB Lambdas are deployed (for scripts). |
+| **CREATE_RDS_TABLES_FUNCTION_NAME**, **CONFIRM_CONSOLE_CREATED_ADMIN_FUNCTION_NAME**, **HEALTH_FUNCTION_NAME**, **READ_USER_INFO_LAMBDA_FUNCTION_NAME** | Function names; defaults match the templates. |
+
+---
+
+## Audit logging (CloudWatch)
+
+Lambdas use **`log_audit`** (from `utils.logger` in the common layer) to write one JSON line per event (e.g. `message`, `userId`, `event`, `status`, `requestId`, `source`/`trigger`).
+
+- **Log groups:** `/aws/lambda/<function-name>`.
+- **Query:** CloudWatch → Logs → Logs Insights; filter by `event`, `status`, `userId`, `requestId` in the message.
+- **Log level:** Optional `LOGGER_LEVEL` per function in the template (`Environment.Variables.LOGGER_LEVEL`, e.g. `INFO` or `DEBUG`).
+
+---
+
+## Adding new Lambdas
+
+- **Routes:** Add the function resource and an `AWS::Lambda::Permission` for each invoker account in `lambda/routes/template.yaml`.
+- **DB (or other stack):** Same pattern in that stack’s `template.yaml`: new function + permissions (and layers/env as needed).
