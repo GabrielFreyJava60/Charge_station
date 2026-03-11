@@ -48,8 +48,8 @@ def build_json(user_info):
                 "phone": user_info[3],
                 "role": user_info[4],
                 "status": user_info[5],
-                "createdAt": user_info[6],
-                "updatedAt": user_info[7],
+                "createdAt": user_info[6].isoformat() if user_info[6] else None,
+                "updatedAt": user_info[7].isoformat() if user_info[7] else None,
             }
 
 def handler(event, context):

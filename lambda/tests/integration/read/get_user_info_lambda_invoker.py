@@ -28,7 +28,7 @@ def invoke_get_user_info(account_id: str, user_id: str):
         return
     assert response['StatusCode'] == 200          # Lambda service-level
     assert response_json is not None
-    assert json.loads(response_json['body'])['userId'] == user_id
+    assert response_json['userId'] == user_id
     print(response_json)
 
 if __name__ == "__main__":
