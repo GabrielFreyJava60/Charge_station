@@ -1,0 +1,350 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Charging Stations Lambda - invokable from another account
+
+Globals:
+  Function:
+    Runtime: python3.13
+    MemorySize: 128
+    Timeout: 10
+
+
+Parameters:
+
+  CognitoClientId:
+    Type: String
+    Description: Cognito client ID
+    Default: 70ct74soj95kqqs4n6kld970m
+  
+  CognitoUserPoolArn:
+    Type: String
+    Description: Cognito user pool ARN
+    Default: arn:aws:cognito-idp:il-central-1:852215679994:userpool/il-central-1_dVQbiQE07
+
+  DBSecretArn:
+    Type: String
+    Description: ARN of existing DB secret
+    Default: arn:aws:secretsmanager:il-central-1:852215679994:secret:charging-stations-rds-postgres-credentials-adUrnW
+
+  InvokerAccountIdA:
+    Type: String
+    Description: AWS account ID that is allowed to invoke this Lambda (e.g. the account that runs Node.js and calls Invoke)
+    Default: "773769103104"
+  InvokerAccountIdB:
+    Type: String
+    Description: AWS account ID that is allowed to invoke this Lambda (e.g. the account that runs Node.js and calls Invoke)
+    Default: ""
+  # VPC and subnets (must be private subnets that can reach each other)
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for Lambda and RDS
+    Default: vpc-0d3987aee1c745343
+  PrivateSubnet1Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: First private subnet (for RDS and Lambda)
+    Default: subnet-097b4a2befe615aad
+  PrivateSubnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Second private subnet (RDS multi-AZ subnet group needs ≥2; for single-AZ one is enough but group still needs 2)
+    Default: subnet-05bdebc566310d684
+  # DB credentials (stored in parameter; for production prefer Secrets Manager)
+  DBMasterUsername:
+    Type: String
+    NoEcho: true
+    Description: Master username for RDS PostgreSQL
+    Default: postgres
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password for RDS PostgreSQL
+    Default: postgres
+  DBName:
+    Type: String
+    Description: Name of the database
+    Default: charging_stations_rds_postgres
+  # Optional: instance class and storage
+  DBInstanceClass:
+    Type: String
+    Default: db.t4g.micro
+    Description: Instance class for RDS PostgreSQL
+  DBAllocatedStorage:
+    Type: String
+    Default: "20"
+    Description: Allocated storage for RDS PostgreSQL
+  
+Conditions:
+  UseInvokerAccountA: !Not [!Equals [!Ref InvokerAccountIdA, ""]]
+  UseInvokerAccountB: !Not [!Equals [!Ref InvokerAccountIdB, ""]]
+
+Resources:
+  CommonToolsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ../layers/common
+      CompatibleRuntimes:
+        - python3.13
+        - python3.12
+      Description: Common tools for Lambdas
+
+  CommonLoggerLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ../layers/common
+      CompatibleRuntimes:
+        - python3.13
+        - python3.12
+      Description: Common logger for charging-stations Lambdas
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for Charging Stations RDS
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for DB operating Lambdas
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Charging Stations RDS
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  ChargingStationsRDSPostgresDB:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: charging-stations-rds-postgres
+      Engine: postgres
+      EngineVersion: "15"
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      StorageType: gp2
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterPassword
+      DBName: !Ref DBName
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      MultiAZ: false
+      PubliclyAccessible: false
+
+  WriteUserRDSFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ChargingStationsRDSPostgresDB
+    Properties:
+      Runtime: python3.12
+      FunctionName: charging-stations-write-user-rds
+      Handler: write_sign_up_user_rds.handler
+      CodeUri: write
+      Layers:
+        - !Ref CommonToolsLayer
+        - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-psycopg2-binary:2"
+      Description: Write user to RDS
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+      Environment:
+        Variables:
+          DB_SECRET_ARN: !Ref DBSecretArn
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref DBSecretArn
+
+  GetUserInfoFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ChargingStationsRDSPostgresDB
+    Properties:
+      Runtime: python3.12
+      FunctionName: charging-stations-get-user-info
+      Handler: get_user_info.handler
+      CodeUri: read
+      Layers:
+        - !Ref CommonToolsLayer
+        - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-psycopg2-binary:2"
+      Description: Get user info from RDS
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+      Environment:
+        Variables:
+          DB_SECRET_ARN: !Ref DBSecretArn
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref DBSecretArn
+
+  GetUserInfoInvokePermissionA:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountA
+    Properties:
+      FunctionName: !Ref GetUserInfoFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdA}:root"
+      
+  GetUserInfoInvokePermissionB:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountB
+    Properties:
+      FunctionName: !Ref GetUserInfoFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdB}:root"
+
+  CreateRDSTablesFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ChargingStationsRDSPostgresDB
+    Properties:
+      Timeout: 30
+      Runtime: python3.12
+      FunctionName: charging-stations-create-rds-tables
+      Handler: create_rds_tables.handler
+      CodeUri: .
+      Layers:
+        - !Ref CommonToolsLayer
+        - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-psycopg2-binary:2"
+      Description: Create RDS tables
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+      Environment:
+        Variables:
+          DB_SECRET_ARN: !Ref DBSecretArn
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref DBSecretArn
+
+  SecretsManagerEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Secrets Manager VPC endpoint
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+  
+  SecretsManagerVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.secretsmanager"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      SecurityGroupIds:
+        - !Ref SecretsManagerEndpointSecurityGroup
+      PrivateDnsEnabled: true
+  # Cross-account: only when InvokerAccountId is provided
+  CreateRDSTablesInvokePermissionA:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountA
+    Properties:
+      FunctionName: !Ref CreateRDSTablesFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdA}:root"
+      
+  CreateRDSTablesInvokePermissionB:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountB
+    Properties:
+      FunctionName: !Ref CreateRDSTablesFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdB}:root"
+
+  WriteUserRDSInvokePermissionA:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountA
+    Properties:
+      FunctionName: !Ref WriteUserRDSFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdA}:root"
+      
+  WriteUserRDSInvokePermissionB:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountB
+    Properties:
+      FunctionName: !Ref WriteUserRDSFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdB}:root"
+
+  CognitoInvokeWriteUserRDSPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WriteUserRDSFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Ref CognitoUserPoolArn
+
+  ConfirmConsoleCreatedAdminFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: charging-stations-confirm-console-created-admin
+      Handler: confirm_console_created_admin.handler
+      CodeUri: write
+      Layers:
+        - !Ref CommonToolsLayer
+        - !Ref CommonLoggerLayer
+      Description: Confirm console created admin
+      Environment:
+        Variables:
+          COGNITO_CLIENT_ID: !Ref CognitoClientId
+          COGNITO_REGION: !Ref AWS::Region
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:InitiateAuth
+                - cognito-idp:RespondToAuthChallenge
+              Resource: !Ref CognitoUserPoolArn
+
+  ConfirmConsoleCreatedAdminInvokePermissionA:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountA
+    Properties:
+      FunctionName: !Ref ConfirmConsoleCreatedAdminFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdA}:root"
+      
+  ConfirmConsoleCreatedAdminInvokePermissionB:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountB
+    Properties:
+      FunctionName: !Ref ConfirmConsoleCreatedAdminFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdB}:root"

@@ -1,18 +1,18 @@
 import boto3
 import json
-from tests.common.argument_parsers import parse_aws_account_id_from_args
 import os
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
 
 REGION = os.getenv('REGION', 'il-central-1')
-
+HEALTH_FUNCTION_NAME = os.getenv('HEALTH_FUNCTION_NAME', 'charging-stations-health')
 lambda_client = boto3.client('lambda', region_name=REGION)
 
 def invoke_health_function(account_id):
     response = lambda_client.invoke(
-        FunctionName=f"arn:aws:lambda:{REGION}:{account_id}:function:charging-stations-health",
+        FunctionName=f"arn:aws:lambda:{REGION}:{account_id}:function:{HEALTH_FUNCTION_NAME}",
         InvocationType='RequestResponse',
         Payload=json.dumps({})
     )
@@ -25,5 +25,8 @@ def test_health_function(account_id):
     assert response['status'] == 'running'
 
 if __name__ == '__main__':
-    account_id = parse_aws_account_id_from_args()
+    if len(sys.argv) != 2:
+        print("Usage: python -m tests.integration.routes.health_invoker <account_id>")
+        sys.exit(1)
+    account_id = sys.argv[1]
     test_health_function(account_id)

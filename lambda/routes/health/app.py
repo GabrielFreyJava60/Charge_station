@@ -1,5 +1,5 @@
 import json
-from logger import logger
+from utils.logger import logger
 
 def handler(event, context):
     logger.info(f"Health function called, Event: {event}")

@@ -13,7 +13,7 @@ Parameters:
   InvokerAccountIdA:
     Type: String
     Description: AWS account ID that is allowed to invoke this Lambda (e.g. the account that runs Node.js and calls Invoke)
-    Default: ""
+    Default: "773769103104"
   InvokerAccountIdB:
     Type: String
     Description: AWS account ID that is allowed to invoke this Lambda (e.g. the account that runs Node.js and calls Invoke)
