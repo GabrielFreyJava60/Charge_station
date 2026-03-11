@@ -14,11 +14,11 @@ Parameters:
   CognitoUserPoolId:
     Type: String
     Description: Cognito user pool ID
-    Default: il-central-1_rIAE4UIiQ
+    Default: il-central-1_dVQbiQE07
   CognitoClientId:
     Type: String
     Description: Cognito client ID
-    Default: 2pbvbmldhk3o4iqnrff3vg7d1h
+    Default: 70ct74soj95kqqs4n6kld970m
   CognitoRegion:
     Type: String
     Description: Region
@@ -51,6 +51,9 @@ Parameters:
   LambdaHealthName:
     Type: String
     Default: charging-stations-health
+  LambdaUserInfoName:
+    Type: String
+    Default: charging-stations-get-user-info
   DesiredCount:
     Type: Number
     Default: 1
@@ -92,6 +95,13 @@ Resources:
               - Effect: Allow
                 Action: lambda:InvokeFunction
                 Resource: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}"
+        - PolicyName: InvokeUserInfoLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaUserInfoName}"
 
   TaskLogGroup:
     Type: AWS::Logs::LogGroup
@@ -174,6 +184,8 @@ Resources:
               Value: !Ref AWS::Region
             - Name: HEALTH_LAMBDA_FUNCTION_NAME
               Value: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaHealthName}"
+            - Name: USER_INFO_LAMBDA_FUNCTION_NAME
+              Value: !Sub "arn:aws:lambda:${LambdaRegion}:${LambdaAccountId}:function:${LambdaUserInfoName}"
             - Name: AUTH_DISABLED
               Value: false
             - Name: COGNITO_REGION

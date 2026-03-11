@@ -60,10 +60,14 @@ export async function verifyCognitoJwt(req: Request, res: Response, next: NextFu
   const issuer = `https://cognito-idp.${env.cognitoRegion}.amazonaws.com/${env.cognitoUserPoolId}`;
 
   try {
-    const { payload } = await jwtVerify(token, getJwks(), {
-      issuer,
-      audience: env.cognitoClientId || undefined
-    });
+    const { payload } = await jwtVerify(token, getJwks(), { issuer });
+
+    if (payload.token_use !== 'access') {
+      throw new Error('Invalid token_use, expected "access"');
+    }
+    if (env.cognitoClientId && payload.client_id !== env.cognitoClientId) {
+      throw new Error('Invalid client_id');
+    }
 
     const groups = Array.isArray(payload['cognito:groups'])
       ? (payload['cognito:groups'] as string[])
