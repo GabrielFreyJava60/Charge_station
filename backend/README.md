@@ -213,6 +213,36 @@ Response:
 }
 ```
 
+#### User profile & admin management
+
+All secured endpoints expect a valid **Cognito JWT** in the `Authorization: Bearer <token>` header.
+If a user does not have the required role, the gateway returns **403** and logs the event with a high severity level.
+
+- `PATCH /users/me/profile` (JWT required) – update own profile (only for the authenticated user)
+
+  Request body (any subset of fields):
+
+  ```json
+  {
+    "email": "user@example.com",
+    "address": "Some Street 1"
+  }
+  ```
+
+- `PATCH /admin/users/:userId/profile` (JWT + `admin` group required) – admin updates email/address for any account
+- `PATCH /admin/users/:userId/role` (JWT + `admin` group required) – admin changes user role
+
+  ```json
+  {
+    "role": "admin"
+  }
+  ```
+
+- `DELETE /admin/users/:userId` (JWT + `admin` group required) – admin deletes a user (self-deletion is forbidden)
+
+All of the above endpoints invoke the **user management Lambda** (`USER_MANAGEMENT_LAMBDA_FUNCTION_NAME`)
+which in turn updates **Cognito User Pool** and/or the database, depending on the requested action.
+
 ### Stations (skeleton)
 
 - `GET /stations`
