@@ -1,27 +1,21 @@
 import { Navigate, Outlet } from "react-router";
 import { type FC } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { getHomePath } from "@/router/roleNavigation";
+import { APP_PATH } from "@/router/roleNavigation";
+import type { UserRole } from "@/types";
 
 interface RoleRouteProps {
-    role: string;
+    role: UserRole;
 };
 
 const RoleRoute: FC<RoleRouteProps> = ({ role }) => {
-    const { loading, userRole } = useAuth();
-    if (loading) {
-        return <div>Loading...</div>
+    const { userRole } = useAuth();
+
+    if (userRole === role) {
+        return <Outlet />;
     }
 
-    if (!userRole) {
-        return <Navigate to="/login" replace />
-    }
-
-    if (userRole !== role) {
-        return <Navigate to={getHomePath(userRole)} replace />;
-    }
-
-    return <Outlet />;
+    return <Navigate to={APP_PATH} replace />;
 }
 
 export default RoleRoute;

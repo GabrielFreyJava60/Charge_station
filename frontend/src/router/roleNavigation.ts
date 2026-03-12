@@ -1,6 +1,9 @@
 import type { UserRole } from "@/types";
 
-const ROLE_HOME: Record<UserRole, string> = {
+export const LOGIN_PATH = "/login";
+export const APP_PATH = "/app";
+
+export const ROLE_HOME: Record<UserRole, string> = {
   USER: "/user",
   ADMIN: "/admin",
   SUPPORT: "/support",

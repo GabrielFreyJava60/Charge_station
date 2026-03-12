@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import LoginPage from '@/pages/guest/LoginPage';
 import RegisterPage from '@/pages/guest/RegisterPage';
 import GuestDashboardPage from '@/pages/guest/GuestDashboardPage';
@@ -15,67 +15,59 @@ import AdminStationsPage from '@/pages/admin/AdminStationsPage';
 import RoleRoute from './RoleRoute';
 import Layout from '@/pages/Layout';
 import ConfirmPage from '@/pages/guest/ConfirmPage';
+import AppRedirect from './AppRedirect';
+import AuthRoute from './AuthRoute';
+import { APP_PATH } from './roleNavigation';
 
 const router = createBrowserRouter([
     /* Unprotected GUEST pages */
-    { path: '/', Component: GuestDashboardPage, },
-    { path: '/login', Component: LoginPage, },
-    { path: '/register', Component: RegisterPage, },
-    { path: '/confirm', Component: ConfirmPage, },
-    
-    /* Protected USER pages */
+    { path: "/", element: <GuestDashboardPage /> },
+    { path: "/login", element: <LoginPage /> },
+    { path: "/register", element: <RegisterPage /> },
+    { path: "/confirm", element: <ConfirmPage /> },
+
+    /* AUTHENTICATED AREA */
     {
-        path: "/user",
-        element: <RoleRoute role="user" />,
+        element: <AuthRoute />,
         children: [
+            /* Role's HOME or redirect to Login if not authenticated */
+            { path: APP_PATH, element: <AppRedirect /> },
             {
                 element: <Layout />,
                 children: [
-                    { Component: UserDashboardPage, index: true, },
-                    { path: "session", Component: UserCurrentSessionPage, },
                     {
-                        path: "account",
+                        path: "/user",
+                        element: <RoleRoute role={"USER"} />,
                         children: [
-                            { path: "profile", Component: UserProfilePage },
+                        { index: true, element: <UserDashboardPage /> },
+                        { path: "session", element: <UserCurrentSessionPage /> },
+                        { path: "profile", element: <UserProfilePage /> }
                         ]
                     },
+                    {
+                        path: "/support",
+                        element: <RoleRoute role={"SUPPORT"} />,
+                        children: [
+                        { index: true, element: <SupportDashboardPage /> },
+                        { path: "logs", element: <SupportLogsPage /> },
+                        { path: "stations", element: <SupportStationsPage /> },
+                        { path: "sessions", element: <SupportSessionsPage /> }
+                        ]
+                    },
+                    {
+                        path: "/admin",
+                        element: <RoleRoute role={"ADMIN"} />,
+                        children: [
+                        { index: true, element: <AdminDashboardPage /> },
+                        { path: "users", element: <AdminUsersPage /> },
+                        { path: "stations", element: <AdminStationsPage /> }
+                        ]
+                    }
                 ]
             }
         ]
-
     },
-    /*SUPPORT pages*/
-    {
-        path: "/support",
-        element: <RoleRoute role="support" />,
-        children: [
-            {
-                element: <Layout />,
-                children: [
-                    { index: true, Component: SupportDashboardPage },
-                    { path: "logs", Component: SupportLogsPage },
-                    { path: "stations", Component: SupportStationsPage },
-                    { path: "sessions", Component: SupportSessionsPage },
-                ]
-            }
-        ],
-    },
-
-    /*ADMIN pages*/
-    {
-        path: "/admin",
-        element: <RoleRoute role="admin" />,
-        children: [
-            {
-                element: <Layout />,
-                children: [
-                    { index: true, Component: AdminDashboardPage },
-                    { path: "users", Component: AdminUsersPage },
-                    { path: "stations", Component: AdminStationsPage },
-                ],
-            }
-        ]
-    },
+    { path: "*", element: <Navigate to={APP_PATH} replace /> }
 ]);
 
 export default router;
