@@ -85,10 +85,10 @@ export const signUp = async (email: string, password: string) => {
     const command = new SignUpCommand(params);
     logger.debug(".signUp command: ", command);
     const response = await cognitoClient.send(command);
-    console.log("Sign up success, Response=", response);
+    logger.debug("Sign up success, Response=", response);
     return response;
   } catch (error) {
-    console.error("Error signing up: ", error);
+    logger.error("Error signing up: ", error);
     throw error;
   }
 };
@@ -102,10 +102,10 @@ export const confirmSignUp = async (username: string, code: string) => {
   try {
     const command = new ConfirmSignUpCommand(params);
     await cognitoClient.send(command);
-    console.log("User confirmed successfully");
+    logger.debug("User confirmed successfully");
     return true;
   } catch (error) {
-    console.error("Error confirming sign up: ", error);
+    logger.error("Error confirming sign up: ", error);
     throw error;
   }
 };
