@@ -4,11 +4,11 @@ import { LOGIN_PATH } from "./roleNavigation";
 
 
 const AuthRoute: React.FC = () => {
-    const { loading, user } = useAuth();
+    const { loading, isAuthenticated } = useAuth();
     if (loading) {
         return <div>Loading...</div>
     }
-    if (!user) {
+    if (!isAuthenticated) {
         return <Navigate to={LOGIN_PATH} replace />
     }
 

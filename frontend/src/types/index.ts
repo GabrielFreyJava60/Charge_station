@@ -24,6 +24,7 @@ export interface AuthDataType {
 export interface AuthContextType {
   user: User | null;
   userRole: UserRole | null;
+  isAuthenticated: boolean;
   session: AuthSession | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<User>;
