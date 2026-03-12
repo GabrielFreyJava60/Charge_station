@@ -47,7 +47,10 @@ export const signIn = async (email: string, password: string): Promise<AuthDataT
   if (!AccessToken) {
     throw Error("No access token retrieved");
   }
-  const payload: AuthPayload = parseJwt(IdToken ?? AccessToken);
+  if (!IdToken) {
+    throw new Error("No ID token retrieved");
+  }
+  const payload: AuthPayload = parseJwt(IdToken);
   const sub = payload?.sub;
   const groups = payload["cognito:groups"] ?? [];
   if (!sub) {
