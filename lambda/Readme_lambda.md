@@ -39,7 +39,7 @@ Use `--use-container` so dependencies (e.g. psycopg2 on Python 3.12) build corre
 After the DB instance is created, you must run a one‑time GRANT so the DB user can use IAM authentication. A simple way is:
 
 1. In the RDS console, temporarily:
-   - On the **Databases** tab of **Aurora and RDS** page select desired **db**, in Modify - Connectivity - Additional configuration set **Publicly accessible = Yes** and apply the change.
+   - On the **Databases** tab of **Aurora and RDS** page select desired **db**, in Modify - Connectivity - Additional configuration set **Publicly accessible = Yes** apply the change and waid for **db** to modify.
    - In **db** - Security group rules find the security group attached to the DB and add an inbound rule:
      - Type: **PostgreSQL** (or **TCP** port `5432`)
      - Source: `<your public IP>/32`.
