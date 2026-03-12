@@ -3,15 +3,10 @@ import { useNavigate } from 'react-router';
 import { useState } from "react";
 import SignInForm from "@/components/SignInForm";
 import { getLogger } from "@/services/logging";
-import { type UserRole } from "@/types";
+import { APP_PATH } from "@/router/roleNavigation";
 
 const logger = getLogger("LoginPage");
 
-const NAV_PATH: Record<UserRole, string> = {
-  USER: "/user",
-  ADMIN: "/admin",
-  SUPPORT: "/support",
-};
 
 const LoginPage = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -27,7 +22,7 @@ const LoginPage = () => {
         throw new Error("User role not found");
       }
       
-      navigate(NAV_PATH[user.userRole]);
+      navigate(APP_PATH);
     }
     catch (error) {
       setErrorMessage(`Sign in failed: ${(error as Error).message}`);

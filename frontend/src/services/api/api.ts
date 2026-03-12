@@ -4,6 +4,7 @@ import { config } from '@/config/env';
 import { getLogger } from '@/services/logging';
 import { type ApiErrorResponse } from '@/types/apiTypes'
 import { ForbiddenError, HttpError, UnauthorizedError } from '@/types/errors'
+import { restoreToken } from '@/auth/persistence';
 
 const logger = getLogger("ApiClient");
 
@@ -19,8 +20,7 @@ const CONFIG_ERROR = 'CONFIG_ERROR';
 
 class ApiClient {
     private readonly client: AxiosInstance;
-    private token: string | null = null;
-    
+
     constructor(baseUrl: string, apiPrefix: string, timeout: number) {
         if (!baseUrl) {
             throw new Error('API base URL is not configured');
@@ -35,7 +35,7 @@ class ApiClient {
         logger.debug(`Created API client. Params: url=${baseUrl}, timeout=${timeout}`);
         this.client.interceptors.request.use(
             (config) => {
-                const token = this.getToken();
+                const token = restoreToken();
                 if (token) {
                     config.headers = config.headers ?? {};
                     config.headers.Authorization = `Bearer ${token}`;
@@ -77,15 +77,7 @@ class ApiClient {
             }
         );
     }
-
-    getToken(): string | null {
-        return this.token;
-    }
-
-    setToken(token: string | null) {
-        this.token = token;
-    }
-
+    
     async get<T>(
         endpoint: string,
         query_params?: Record<string, unknown>,
