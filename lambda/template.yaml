@@ -8,28 +8,13 @@ Globals:
     MemorySize: 128
     Timeout: 10
 
-
 Parameters:
-
-  CognitoClientId:
-    Type: String
-    Description: Cognito client ID
-    Default: 70ct74soj95kqqs4n6kld970m
-  
-  CognitoUserPoolArn:
-    Type: String
-    Description: Cognito user pool ARN
-    Default: arn:aws:cognito-idp:il-central-1:852215679994:userpool/il-central-1_dVQbiQE07
-
-  DBSecretArn:
-    Type: String
-    Description: ARN of existing DB secret
-    Default: arn:aws:secretsmanager:il-central-1:852215679994:secret:charging-stations-rds-postgres-credentials-adUrnW
 
   InvokerAccountIdA:
     Type: String
     Description: AWS account ID that is allowed to invoke this Lambda (e.g. the account that runs Node.js and calls Invoke)
     Default: "773769103104"
+
   InvokerAccountIdB:
     Type: String
     Description: AWS account ID that is allowed to invoke this Lambda (e.g. the account that runs Node.js and calls Invoke)
@@ -39,10 +24,12 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     Description: VPC for Lambda and RDS
     Default: vpc-0d3987aee1c745343
+
   PrivateSubnet1Id:
     Type: AWS::EC2::Subnet::Id
     Description: First private subnet (for RDS and Lambda)
     Default: subnet-097b4a2befe615aad
+
   PrivateSubnet2Id:
     Type: AWS::EC2::Subnet::Id
     Description: Second private subnet (RDS multi-AZ subnet group needs ≥2; for single-AZ one is enough but group still needs 2)
@@ -62,25 +49,80 @@ Parameters:
     Default: "20"
     Description: Allocated storage for RDS PostgreSQL
 
-  DBMasterUsername:
+  DBSecretArn:
     Type: String
-    Default: postgres
-    Description: Master username for RDS PostgreSQL
+    Description: ARN of existing DB secret
+    Default: arn:aws:secretsmanager:il-central-1:852215679994:secret:charging-stations-rds-postgres-credentials-adUrnW
+  
 
-  DBMasterPassword:
-    Type: String
-    Default: postgres
-    Description: Master password for RDS PostgreSQL
   
 Conditions:
   UseInvokerAccountA: !Not [!Equals [!Ref InvokerAccountIdA, ""]]
   UseInvokerAccountB: !Not [!Equals [!Ref InvokerAccountIdB, ""]]
 
 Resources:
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: charging-stations-user-pool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      LambdaConfig:
+        PostAuthentication: !GetAtt WriteUserRDSFunction.Arn
+        PostConfirmation:  !GetAtt WriteUserRDSFunction.Arn
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: charging-stations-client
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: ADMIN
+      UserPoolId: !Ref UserPool
+      Description: Admin users for console
+      Precedence: 1
+
+  UserGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: USER
+      UserPoolId: !Ref UserPool
+      Description: Regular users
+      Precedence: 20
+
+  SupportGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: SUPPORT
+      UserPoolId: !Ref UserPool
+      Description: Support users
+      Precedence: 10
+
   CommonToolsLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: ../layers/common
+      ContentUri: layers/common
       CompatibleRuntimes:
         - python3.13
         - python3.12
@@ -89,7 +131,7 @@ Resources:
   CommonLoggerLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: ../layers/common
+      ContentUri: layers/common
       CompatibleRuntimes:
         - python3.13
         - python3.12
@@ -150,6 +192,33 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
+  CognitoIdPApiEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Cognito IdP API VPC endpoint
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  CognitoIdPVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      VpcEndpointType: Interface
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.cognito-idp"
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      SecurityGroupIds:
+        - !Ref CognitoIdPApiEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
   ChargingStationsRDSPostgresDB:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Snapshot
@@ -160,8 +229,8 @@ Resources:
       DBInstanceClass: !Ref DBInstanceClass
       AllocatedStorage: !Ref DBAllocatedStorage
       StorageType: gp2
-      MasterUsername: !Ref DBMasterUsername
-      MasterUserPassword: !Ref DBMasterPassword
+      MasterUsername: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:username}}"
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:password}}"
       DBName: !Ref DBName
       DBSubnetGroupName: !Ref DBSubnetGroup
       VPCSecurityGroups:
@@ -177,11 +246,11 @@ Resources:
       Runtime: python3.12
       FunctionName: charging-stations-write-user-rds
       Handler: write_sign_up_user_rds.handler
-      CodeUri: write
+      CodeUri: db/write
       Layers:
         - !Ref CommonToolsLayer
         - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-psycopg2-binary:2"
-      Description: Write user to RDS
+      Description: Write user to RDS and add to Cognito group
       VpcConfig:
         SecurityGroupIds:
           - !Ref LambdaSecurityGroup
@@ -193,7 +262,8 @@ Resources:
           DB_HOST: !GetAtt ChargingStationsRDSPostgresDB.Endpoint.Address
           DB_PORT: "5432"
           DB_NAME: !Ref DBName
-          DB_USER: !Ref DBMasterUsername
+          DB_USER: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:username}}"
+
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -202,7 +272,10 @@ Resources:
               Resource: !Sub
                 - "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${DBResourceId}/${DBUser}"
                 - DBResourceId: !GetAtt ChargingStationsRDSPostgresDB.DbiResourceId
-                  DBUser: !Ref DBMasterUsername
+                  DBUser: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:username}}"
+            - Effect: Allow
+              Action: cognito-idp:AdminAddUserToGroup
+              Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
 
   GetUserInfoFunction:
     Type: AWS::Serverless::Function
@@ -211,7 +284,7 @@ Resources:
       Runtime: python3.12
       FunctionName: charging-stations-get-user-info
       Handler: get_user_info.handler
-      CodeUri: read
+      CodeUri: db/read
       Layers:
         - !Ref CommonToolsLayer
         - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-psycopg2-binary:2"
@@ -227,7 +300,7 @@ Resources:
           DB_HOST: !GetAtt ChargingStationsRDSPostgresDB.Endpoint.Address
           DB_PORT: "5432"
           DB_NAME: !Ref DBName
-          DB_USER: !Ref DBMasterUsername
+          DB_USER: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:username}}"
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -236,7 +309,7 @@ Resources:
               Resource: !Sub
                 - "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${DBResourceId}/${DBUser}"
                 - DBResourceId: !GetAtt ChargingStationsRDSPostgresDB.DbiResourceId
-                  DBUser: !Ref DBMasterUsername
+                  DBUser: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:username}}"
 
   GetUserInfoInvokePermissionA:
     Type: AWS::Lambda::Permission
@@ -256,13 +329,12 @@ Resources:
 
   CreateRDSTablesFunction:
     Type: AWS::Serverless::Function
-    DependsOn: ChargingStationsRDSPostgresDB
     Properties:
       Timeout: 30
       Runtime: python3.12
       FunctionName: charging-stations-create-rds-tables
       Handler: create_rds_tables.handler
-      CodeUri: .
+      CodeUri: db
       Layers:
         - !Ref CommonToolsLayer
         - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-psycopg2-binary:2"
@@ -278,7 +350,7 @@ Resources:
           DB_HOST: !GetAtt ChargingStationsRDSPostgresDB.Endpoint.Address
           DB_PORT: "5432"
           DB_NAME: !Ref DBName
-          DB_USER: !Ref DBMasterUsername
+          DB_USER: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:username}}"
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -287,7 +359,7 @@ Resources:
               Resource: !Sub
                 - "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${DBResourceId}/${DBUser}"
                 - DBResourceId: !GetAtt ChargingStationsRDSPostgresDB.DbiResourceId
-                  DBUser: !Ref DBMasterUsername
+                  DBUser: !Sub "{{resolve:secretsmanager:${DBSecretArn}:SecretString:username}}"
   # Cross-account: only when InvokerAccountId is provided
   CreateRDSTablesInvokePermissionA:
     Type: AWS::Lambda::Permission
@@ -327,20 +399,20 @@ Resources:
       FunctionName: !Ref WriteUserRDSFunction
       Action: lambda:InvokeFunction
       Principal: cognito-idp.amazonaws.com
-      SourceArn: !Ref CognitoUserPoolArn
+      SourceArn: !GetAtt UserPool.Arn
 
   ConfirmConsoleCreatedAdminFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: charging-stations-confirm-console-created-admin
       Handler: confirm_console_created_admin.handler
-      CodeUri: .
+      CodeUri: db
       Layers:
         - !Ref CommonLoggerLayer
       Description: Confirm console created admin
       Environment:
         Variables:
-          COGNITO_CLIENT_ID: !Ref CognitoClientId
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
           COGNITO_REGION: !Ref AWS::Region
       Policies:
         - Version: '2012-10-17'
@@ -349,7 +421,7 @@ Resources:
               Action:
                 - cognito-idp:InitiateAuth
                 - cognito-idp:RespondToAuthChallenge
-              Resource: !Ref CognitoUserPoolArn
+              Resource: !GetAtt UserPool.Arn
 
   ConfirmConsoleCreatedAdminInvokePermissionA:
     Type: AWS::Lambda::Permission
@@ -364,5 +436,32 @@ Resources:
     Condition: UseInvokerAccountB
     Properties:
       FunctionName: !Ref ConfirmConsoleCreatedAdminFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdB}:root"
+      
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: charging-stations-health
+      Handler: app.handler
+      CodeUri: routes/health
+      Layers:
+        - !Ref CommonLoggerLayer
+      Description: Health check - returns {"code":200,"status":"running"}
+
+  # Cross-account: only when InvokerAccountId is provided
+  HealthInvokePermissionA:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountA
+    Properties:
+      FunctionName: !Ref HealthFunction
+      Action: lambda:InvokeFunction
+      Principal: !Sub "arn:aws:iam::${InvokerAccountIdA}:root"
+      
+  HealthInvokePermissionB:
+    Type: AWS::Lambda::Permission
+    Condition: UseInvokerAccountB
+    Properties:
+      FunctionName: !Ref HealthFunction
       Action: lambda:InvokeFunction
       Principal: !Sub "arn:aws:iam::${InvokerAccountIdB}:root"

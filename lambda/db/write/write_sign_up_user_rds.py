@@ -1,12 +1,10 @@
 import os
-import json
 import boto3
 import psycopg2
 from utils.logger import logger
 from datetime import datetime
 from data_types.db_instance_types import UserInstance
 from utils.logger import log_audit
-
 
 _conn = None
 
@@ -39,6 +37,13 @@ def get_connection():
         )
     return _conn
 
+def is_admin_console_created(event):
+    res = False
+    trigger_source = event.get("triggerSource", "")
+    if trigger_source.startswith("PostAuthentication_"):
+        res = True
+    return res
+
 def extract_user_instance_from_event(event):
     logger.info(f"Extracting user instance")
     attrs = event['request']['userAttributes']
@@ -46,19 +51,30 @@ def extract_user_instance_from_event(event):
     status = attrs['cognito:user_status']
     user_instance: UserInstance = {
         'user_id': attrs['sub'],
-        'username': event['userName'],
+        'full_name': attrs.get('name') if not attrs.get('name').startswith("cognito:") else "Console User",
         'email': email,
         'phone': attrs.get('phone_number'),
-        'role': attrs.get('custom:role') or "USER",
+        'role': "USER",
         'status': "ACTIVE" if status == "CONFIRMED" else None,
         'created_at': datetime.now().isoformat(),
     }
     return user_instance
 
+
+def add_user_to_group(user_pool_id: str, username: str, group_name: str):
+    client = boto3.client("cognito-idp")
+    client.admin_add_user_to_group(
+        UserPoolId=user_pool_id,
+        Username=username,
+        GroupName=group_name,
+    )
+
 def validate_user_instance(user):
     try:
         user_instance: UserInstance = extract_user_instance_from_event(user)
         logger.info(f"User instance: {user_instance}")
+        if is_admin_console_created(user):
+            user_instance["role"] = "ADMIN"
         return user_instance
     except Exception as e:
         logger.error(f"Error validating user instance: {e}")
@@ -71,13 +87,13 @@ def insert_user(user: UserInstance):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users (user_id, username, email, phone, role, status, created_at)
+                INSERT INTO users (user_id, full_name, email, phone, role, status, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (user_id) DO NOTHING
                 """,
                 (
                     user["user_id"],
-                    user["username"],
+                    user["full_name"],
                     user["email"],
                     user.get("phone"),
                     user["role"],
@@ -94,11 +110,13 @@ def write_user_to_rds(event):
     user_instance = validate_user_instance(event)
     insert_user(user_instance)
     logger.info("User written to RDS")
+    return user_instance
 
 def handler(event, context):
     logger.info(f"Handler called with event: {event}")
     try:
-        write_user_to_rds(event)
+        user_instance = write_user_to_rds(event)
+        add_user_to_group(event.get("userPoolId"), user_instance.get("email"), user_instance.get("role"))
         log_audit(
             "INFO",
             message="user written to RDS successfully",

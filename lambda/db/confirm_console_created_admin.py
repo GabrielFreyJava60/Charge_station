@@ -29,6 +29,7 @@ def respond_to_new_password_challenge(
         ChallengeResponses={
             "USERNAME": username,
             "NEW_PASSWORD": new_password,
+            "userAttributes.name": "Console User",
         },
     )
 
@@ -45,6 +46,7 @@ def handler(event, context):
         client = boto3.client("cognito-idp", region_name=COGNITO_REGION)
 
         resp = initiate_auth(client, username, password)
+        
 
         challenge_name = resp.get("ChallengeName")
 

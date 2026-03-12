@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # Usage: python -m db.run_confirm_console_created_admin <aws_account_id> <username> <password> <new_password>
     if len(sys.argv) != 5:
         print(
-            "Usage: python -m run_confirm_console_created_admin <aws_account_id> <username> <password> <new_password>",
+            "Usage: python -m run_confirm_console_created_admin <aws_account_id> <email> <password> <new_password>",
             file=sys.stderr,
         )
         sys.exit(1)

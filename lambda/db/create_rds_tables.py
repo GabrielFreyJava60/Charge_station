@@ -46,10 +46,10 @@ def create_tables():
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     user_id TEXT PRIMARY KEY,
-                    username TEXT NOT NULL,
+                    full_name TEXT NOT NULL,
                     email TEXT NOT NULL UNIQUE,
                     phone TEXT UNIQUE,
-                    role TEXT NOT NULL,
+                    role TEXT NOT NULL CHECK (role IN ('USER', 'ADMIN', 'SUPPORT')),
                     status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'BANNED', 'DISABLED')),
                     created_at TIMESTAMPTZ NOT NULL,
                     updated_at TIMESTAMPTZ
