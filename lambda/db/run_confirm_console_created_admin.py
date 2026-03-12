@@ -44,14 +44,11 @@ if __name__ == "__main__":
     username = sys.argv[2]
     password = sys.argv[3]
     new_password = sys.argv[4]
-    try:
-        invoke_confirm_console_created_admin(account_id, username, password, new_password)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    payload_bytes = invoke_confirm_console_created_admin(account_id, username, password, new_password)
+    payload = json.loads(payload_bytes.decode("utf-8"))
+    if "errorMessage" in payload:
+        print(f"Lambda reported error: {payload['errorMessage']}", file=sys.stderr)
         sys.exit(1)
-
-    print("Console created admin confirmed successfully")
-    sys.exit(0)
-
-
-
+    else:
+        print("Console created admin confirmed successfully")
+        sys.exit(0)

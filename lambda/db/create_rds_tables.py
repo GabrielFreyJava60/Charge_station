@@ -4,29 +4,42 @@ import boto3
 import psycopg2
 from utils.logger import logger, log_audit
 
-def get_secret():
-    secret_arn = os.getenv("DB_SECRET_ARN")
-    if not secret_arn:
-        raise RuntimeError("DB_SECRET_ARN environment variable is not set")
-    region = os.getenv("AWS_REGION", "il-central-1")
-    sm = boto3.client("secretsmanager", region_name=region)
+_conn = None
 
-    r = sm.get_secret_value(SecretId=secret_arn)
-    secret_value = json.loads(r["SecretString"])
-    return secret_value
+def get_db_config():
+    return {
+        "host": os.environ["DB_HOST"],
+        "port": int(os.environ.get("DB_PORT", "5432")),
+        "dbname": os.environ["DB_NAME"],
+        "user": os.environ["DB_USER"],
+        "region": os.environ.get("AWS_REGION", "il-central-1"),
+    }
+
+def get_connection():
+    global _conn
+    if _conn is None or _conn.closed:
+        cfg = get_db_config()
+        rds = boto3.client("rds", region_name=cfg["region"])
+        token = rds.generate_db_auth_token(
+            DBHostname=cfg["host"],
+            Port=cfg["port"],
+            DBUsername=cfg["user"],
+            Region=cfg["region"],
+        )
+        _conn = psycopg2.connect(
+            host=cfg["host"],
+            port=cfg["port"],
+            dbname=cfg["dbname"],
+            user=cfg["user"],
+            password=token,
+            connect_timeout=30,
+            sslmode="require",
+        )
+    return _conn
 
 def create_tables():
-    logger.info("Fetching secret...")
-    secret = get_secret()
     logger.info("Connecting to DB...")
-    conn = psycopg2.connect(
-        host=secret["host"],
-        port=int(secret.get("port", 5432)),
-        dbname=secret["dbname"],
-        user=secret["username"],
-        password=secret["password"],
-        connect_timeout=30,
-    )
+    conn = get_connection()
     logger.info("Connected. Creating tables...")
     try:
         with conn.cursor() as cur:
@@ -45,6 +58,7 @@ def create_tables():
         conn.commit()
     finally:
         conn.close()
+
 def handler(event, context):
     logger.info(f"Handler called with event: {event}")
     try:

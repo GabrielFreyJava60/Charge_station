@@ -10,24 +10,32 @@ from utils.logger import log_audit
 
 _conn = None
 
-def get_secret():
-    arn = os.environ.get("DB_SECRET_ARN")
-    if not arn:
-        raise ValueError("DB_SECRET_ARN not set")
-    sm = boto3.client("secretsmanager")
-    r = sm.get_secret_value(SecretId=arn)
-    return json.loads(r["SecretString"])
-
+def get_db_config():
+    return {
+        "host": os.environ["DB_HOST"],
+        "port": int(os.environ.get("DB_PORT", "5432")),
+        "dbname": os.environ["DB_NAME"],
+        "user": os.environ["DB_USER"],
+        "region": os.environ.get("AWS_REGION", "il-central-1"),
+    }
 def get_connection():
     global _conn
     if _conn is None or _conn.closed:
-        secret = get_secret()
+        cfg = get_db_config()
+        rds = boto3.client("rds", region_name=cfg["region"])
+        token = rds.generate_db_auth_token(
+            DBHostname=cfg["host"],
+            Port=cfg["port"],
+            DBUsername=cfg["user"],
+            Region=cfg["region"],
+        )
         _conn = psycopg2.connect(
-            host=secret["host"],
-            port=int(secret.get("port", 5432)),
-            dbname=secret["dbname"],
-            user=secret["username"],
-            password=secret["password"],
+            host=cfg["host"],
+            port=cfg["port"],
+            dbname=cfg["dbname"],
+            user=cfg["user"],
+            password=token,
+            sslmode="require",
         )
     return _conn
 

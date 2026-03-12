@@ -48,16 +48,6 @@ Parameters:
     Description: Second private subnet (RDS multi-AZ subnet group needs ≥2; for single-AZ one is enough but group still needs 2)
     Default: subnet-05bdebc566310d684
   # DB credentials (stored in parameter; for production prefer Secrets Manager)
-  DBMasterUsername:
-    Type: String
-    NoEcho: true
-    Description: Master username for RDS PostgreSQL
-    Default: postgres
-  DBMasterPassword:
-    Type: String
-    NoEcho: true
-    Description: Master password for RDS PostgreSQL
-    Default: postgres
   DBName:
     Type: String
     Description: Name of the database
@@ -71,6 +61,16 @@ Parameters:
     Type: String
     Default: "20"
     Description: Allocated storage for RDS PostgreSQL
+
+  DBMasterUsername:
+    Type: String
+    Default: postgres
+    Description: Master username for RDS PostgreSQL
+
+  DBMasterPassword:
+    Type: String
+    Default: postgres
+    Description: Master password for RDS PostgreSQL
   
 Conditions:
   UseInvokerAccountA: !Not [!Equals [!Ref InvokerAccountIdA, ""]]
@@ -123,13 +123,40 @@ Resources:
           ToPort: 5432
           SourceSecurityGroupId: !Ref LambdaSecurityGroup
 
+  RDSApiVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      VpcEndpointType: Interface
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.rds"
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      SecurityGroupIds:
+        - !Ref RDSApiEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  RDSApiEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS API VPC endpoint
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
   ChargingStationsRDSPostgresDB:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Snapshot
     Properties:
       DBInstanceIdentifier: charging-stations-rds-postgres
       Engine: postgres
-      EngineVersion: "15"
+      EngineVersion: "18.1"
       DBInstanceClass: !Ref DBInstanceClass
       AllocatedStorage: !Ref DBAllocatedStorage
       StorageType: gp2
@@ -141,6 +168,7 @@ Resources:
         - !Ref RDSSecurityGroup
       MultiAZ: false
       PubliclyAccessible: false
+      EnableIAMDatabaseAuthentication: true
 
   WriteUserRDSFunction:
     Type: AWS::Serverless::Function
@@ -162,13 +190,19 @@ Resources:
           - !Ref PrivateSubnet2Id
       Environment:
         Variables:
-          DB_SECRET_ARN: !Ref DBSecretArn
+          DB_HOST: !GetAtt ChargingStationsRDSPostgresDB.Endpoint.Address
+          DB_PORT: "5432"
+          DB_NAME: !Ref DBName
+          DB_USER: !Ref DBMasterUsername
       Policies:
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
-              Action: secretsmanager:GetSecretValue
-              Resource: !Ref DBSecretArn
+              Action: rds-db:connect
+              Resource: !Sub
+                - "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${DBResourceId}/${DBUser}"
+                - DBResourceId: !GetAtt ChargingStationsRDSPostgresDB.DbiResourceId
+                  DBUser: !Ref DBMasterUsername
 
   GetUserInfoFunction:
     Type: AWS::Serverless::Function
@@ -190,13 +224,19 @@ Resources:
           - !Ref PrivateSubnet2Id
       Environment:
         Variables:
-          DB_SECRET_ARN: !Ref DBSecretArn
+          DB_HOST: !GetAtt ChargingStationsRDSPostgresDB.Endpoint.Address
+          DB_PORT: "5432"
+          DB_NAME: !Ref DBName
+          DB_USER: !Ref DBMasterUsername
       Policies:
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
-              Action: secretsmanager:GetSecretValue
-              Resource: !Ref DBSecretArn
+              Action: rds-db:connect
+              Resource: !Sub
+                - "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${DBResourceId}/${DBUser}"
+                - DBResourceId: !GetAtt ChargingStationsRDSPostgresDB.DbiResourceId
+                  DBUser: !Ref DBMasterUsername
 
   GetUserInfoInvokePermissionA:
     Type: AWS::Lambda::Permission
@@ -235,40 +275,19 @@ Resources:
           - !Ref PrivateSubnet2Id
       Environment:
         Variables:
-          DB_SECRET_ARN: !Ref DBSecretArn
+          DB_HOST: !GetAtt ChargingStationsRDSPostgresDB.Endpoint.Address
+          DB_PORT: "5432"
+          DB_NAME: !Ref DBName
+          DB_USER: !Ref DBMasterUsername
       Policies:
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
-              Action: secretsmanager:GetSecretValue
-              Resource: !Ref DBSecretArn
-
-  SecretsManagerEndpointSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for Secrets Manager VPC endpoint
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          SourceSecurityGroupId: !Ref LambdaSecurityGroup
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0
-  
-  SecretsManagerVpcEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcId: !Ref VpcId
-      ServiceName: !Sub "com.amazonaws.${AWS::Region}.secretsmanager"
-      VpcEndpointType: Interface
-      SubnetIds:
-        - !Ref PrivateSubnet1Id
-        - !Ref PrivateSubnet2Id
-      SecurityGroupIds:
-        - !Ref SecretsManagerEndpointSecurityGroup
-      PrivateDnsEnabled: true
+              Action: rds-db:connect
+              Resource: !Sub
+                - "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:${DBResourceId}/${DBUser}"
+                - DBResourceId: !GetAtt ChargingStationsRDSPostgresDB.DbiResourceId
+                  DBUser: !Ref DBMasterUsername
   # Cross-account: only when InvokerAccountId is provided
   CreateRDSTablesInvokePermissionA:
     Type: AWS::Lambda::Permission
