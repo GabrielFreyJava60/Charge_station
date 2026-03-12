@@ -67,24 +67,28 @@ def validate_user_instance(user):
 def insert_user(user: UserInstance):
     conn = get_connection()
     status = user.get("status") or "ACTIVE"
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO users (user_id, username, email, phone, role, status, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (user_id) DO NOTHING
-            """,
-            (
-                user["user_id"],
-                user["username"],
-                user["email"],
-                user.get("phone"),
-                user["role"],
-                status,
-                user["created_at"],
-            ),
-        )
-    conn.commit()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO users (user_id, username, email, phone, role, status, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (user_id) DO NOTHING
+                """,
+                (
+                    user["user_id"],
+                    user["username"],
+                    user["email"],
+                    user.get("phone"),
+                    user["role"],
+                    status,
+                    user["created_at"],
+                ),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 def write_user_to_rds(event):
     user_instance = validate_user_instance(event)
