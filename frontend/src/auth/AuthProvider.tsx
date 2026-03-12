@@ -1,4 +1,4 @@
-import { useEffect, useState, type FC, type PropsWithChildren } from "react";
+import { useState, type FC, type PropsWithChildren } from "react";
 import type { UserRole, AuthSession, User, AuthContextType } from "@/types";
 import { AuthContext } from "./context";
 import { signIn, signUp } from "@/services/auth/authService";
@@ -8,23 +8,14 @@ import { saveUser, restoreUser, saveToken, restoreToken, clearSessionStorage } f
 const logger = getLogger("Auth");
 
 export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [userRole, setUserRole] = useState<UserRole | null>(null);
-    const [session, setSession] = useState<AuthSession | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
-
-    useEffect(() => {
-        const user = restoreUser();
-        if (user) {
-            setUser(user);
-            setUserRole(user.userRole);
-        }
+    const [user, setUser] = useState<User | null>(() => restoreUser());
+    const [session, setSession] = useState<AuthSession | null>(() => {
         const token = restoreToken();
-        if (token) {
-            setSession({ accessToken: token });
-        }
-    }, []);
-
+        return token ? { accessToken: token } : null;
+    });
+    const [userRole, setUserRole] = useState<UserRole | null>(() => user?.userRole ?? null);
+    const [loading, setLoading] = useState<boolean>(false);
+    
     
     const signInHandler = async (email: string, password: string): Promise<User> => {
         setLoading(true);
