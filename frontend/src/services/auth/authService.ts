@@ -8,11 +8,15 @@ import {
   type ConfirmSignUpCommandInput,
   type InitiateAuthCommandOutput,
   type AuthenticationResultType,
+  type ResendConfirmationCodeRequest,
+  ResendConfirmationCodeCommand,
+  UserNotConfirmedException,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { getLogger } from '@/services/logging';
 import { config } from '@/config/env';
 import { parseJwt } from "./jwtService";
 import type { AuthDataType, AuthPayload, UserRole } from "@/types";
+import { NotConfirmedError } from "@/types/errors";
 
 const logger = getLogger("authService");
 
@@ -30,12 +34,19 @@ export const initiateSignIn = async (email: string, password: string): Promise<A
     },
   };
   const command = new InitiateAuthCommand(params);
-  const cognitoResponse: InitiateAuthCommandOutput = await cognitoClient.send(command);
-  logger.debug(".initiateSignIn Cognito response: ", cognitoResponse);
-  const authenticationResult = cognitoResponse.AuthenticationResult;
-  logger.debug(".initiateSignIn authentication result: ", authenticationResult);
+  try {
+    const cognitoResponse: InitiateAuthCommandOutput = await cognitoClient.send(command);
+    logger.debug(".initiateSignIn Cognito response: ", cognitoResponse);
+    const authenticationResult = cognitoResponse.AuthenticationResult;
+    logger.debug(".initiateSignIn authentication result: ", authenticationResult);
     
-  return authenticationResult;
+    return authenticationResult;
+  } catch (error) {
+    if (error instanceof UserNotConfirmedException) {
+      throw new NotConfirmedError(error.message, { cause: error });
+    }
+    throw error;
+  }
 };
 
 export const signIn = async (email: string, password: string): Promise<AuthDataType> => {
@@ -50,6 +61,7 @@ export const signIn = async (email: string, password: string): Promise<AuthDataT
   if (!IdToken) {
     throw new Error("No ID token retrieved");
   }
+  logger.debug(".signIn IdToken: ", IdToken);
   const payload: AuthPayload = parseJwt(IdToken);
   const sub = payload?.sub;
   const groups = payload["cognito:groups"] ?? [];
@@ -69,7 +81,7 @@ export const signIn = async (email: string, password: string): Promise<AuthDataT
   }
 }
 
-export const signUp = async (email: string, password: string) => {
+export const signUp = async (email: string, password: string, name: string) => {
   const params: SignUpCommandInput = {
     ClientId: config.cognitoClientId,
     Username: email,
@@ -78,6 +90,10 @@ export const signUp = async (email: string, password: string) => {
       {
         Name: "email",
         Value: email,
+      },
+      {
+        Name: "name",
+        Value: name,
       },
     ],
   };
@@ -109,3 +125,18 @@ export const confirmSignUp = async (username: string, code: string) => {
     throw error;
   }
 };
+
+export const resendConfirmationCode = async (username: string) => {
+  const input: ResendConfirmationCodeRequest = {
+    ClientId: config.cognitoClientId,
+    Username: username,
+  };
+  const command = new ResendConfirmationCodeCommand(input);
+  try {
+    const response = await cognitoClient.send(command);
+    console.debug(".ResendConfirmationCode response: ", response);
+  } catch (error) {
+    logger.error("Error resending confirmation code: ", error);
+    throw error;
+  }
+}

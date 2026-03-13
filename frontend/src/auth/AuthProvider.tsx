@@ -44,8 +44,8 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         logger.debug("SIGN OUT DONE");
     }
 
-    const signUpHandler = async (email: string, password: string) => {
-        await signUp(email, password);
+    const signUpHandler = async (email: string, password: string, name: string) => {
+        await signUp(email, password, name);
         logger.debug("SIGN UP COMPLETE");
     }
     

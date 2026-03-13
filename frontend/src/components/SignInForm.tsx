@@ -6,7 +6,8 @@ interface SignInFormProps{
   submitHandler: (
     email: string,
     password: string,
-    confirmPassword?: string
+    confirmPassword?: string,
+    name?: string
   ) => void;
 }
 
@@ -14,12 +15,13 @@ const SignInForm: FC<SignInFormProps> = ({isRegister, submitHandler}) => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string | undefined>(undefined);
+  const [name, setName] = useState<string | undefined>(undefined);
   
   const navigate = useNavigate();
 
   const handleSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    submitHandler(email, password, confirmPassword);
+    submitHandler(email, password, confirmPassword, name);
   };
 
   return (
@@ -40,6 +42,19 @@ const SignInForm: FC<SignInFormProps> = ({isRegister, submitHandler}) => {
           required
         />
       </div>
+      {isRegister && (
+        <div>
+          <input
+            className="inputText"
+            id="name"
+            type="text"
+            value={name ?? ""}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name"
+            required
+          />
+        </div>
+      )}
       <div>
         <input
           className="inputText"

@@ -9,7 +9,7 @@ export class ApiError extends Error {
         this.name = 'ApiError'; 
         this.code = code;
     }
-}
+};
 
 export class HttpError extends ApiError {
     status?: number;
@@ -32,5 +32,13 @@ export class ForbiddenError extends HttpError {
     constructor(message: string) {
         super(message, 'FORBIDDEN', 403);
         this.name = 'ForbiddenError';
+    }
+};
+
+// Cognito related errors
+export class NotConfirmedError extends Error {
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
+        this.name = this.constructor.name;
     }
 }
