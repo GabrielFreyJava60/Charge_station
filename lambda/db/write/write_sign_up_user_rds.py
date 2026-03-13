@@ -5,10 +5,11 @@ from utils.logger import logger
 from datetime import datetime
 from data_types.db_instance_types import UserInstance
 from utils.logger import log_audit
+from typing import Literal, Any
 
 _conn = None
 
-def get_db_config():
+def get_db_config() -> dict:
     return {
         "host": os.environ["DB_HOST"],
         "port": int(os.environ.get("DB_PORT", "5432")),
@@ -16,7 +17,7 @@ def get_db_config():
         "user": os.environ["DB_USER"],
         "region": os.environ.get("AWS_REGION", "il-central-1"),
     }
-def get_connection():
+def get_connection() -> psycopg2.extensions.connection:
     global _conn
     if _conn is None or _conn.closed:
         cfg = get_db_config()
@@ -37,14 +38,14 @@ def get_connection():
         )
     return _conn
 
-def is_admin_console_created(event):
+def is_admin_console_created(event: dict) -> bool:
     res = False
     trigger_source = event.get("triggerSource", "")
     if trigger_source.startswith("PostAuthentication_"):
         res = True
     return res
 
-def extract_user_instance_from_event(event):
+def extract_user_instance_from_event(event: dict) -> UserInstance:
     logger.info(f"Extracting user instance")
     attrs = event['request']['userAttributes']
     email = attrs['email']
@@ -56,31 +57,36 @@ def extract_user_instance_from_event(event):
         'phone': attrs.get('phone_number'),
         'role': "USER",
         'status': "ACTIVE" if status == "CONFIRMED" else None,
-        'created_at': datetime.now().isoformat(),
+        'created_at': datetime.now(),
+        'updated_at': None,
     }
     return user_instance
 
 
-def add_user_to_group(user_pool_id: str, username: str, group_name: str):
-    client = boto3.client("cognito-idp")
-    client.admin_add_user_to_group(
-        UserPoolId=user_pool_id,
-        Username=username,
-        GroupName=group_name,
-    )
-
-def validate_user_instance(user):
+def add_user_to_group(user_pool_id: str, email: str, role: Literal["USER", "ADMIN", "TECH_SUPPORT"]) -> None:
     try:
-        user_instance: UserInstance = extract_user_instance_from_event(user)
-        logger.info(f"User instance: {user_instance}")
-        if is_admin_console_created(user):
-            user_instance["role"] = "ADMIN"
-        return user_instance
+        client = boto3.client("cognito-idp")
+        client.admin_add_user_to_group(
+            UserPoolId=user_pool_id,
+            Username=email,
+            GroupName=role,
+            )
     except Exception as e:
-        logger.error(f"Error validating user instance: {e}")
+        logger.error(f"Error adding user to group: {e}")
         raise e
 
-def insert_user(user: UserInstance):
+def validate_user_instance(event: dict) -> UserInstance:
+    try:
+        user_instance: UserInstance = extract_user_instance_from_event(event)
+        logger.info(f"User instance: {user_instance}")
+        if is_admin_console_created(event):
+            user_instance["role"] = "ADMIN"
+        return user_instance
+    except Exception:
+        logger.exception("Error adding user to group")
+        raise
+
+def insert_user(user: UserInstance) -> None:
     conn = get_connection()
     status = user.get("status") or "ACTIVE"
     try:
@@ -106,22 +112,22 @@ def insert_user(user: UserInstance):
         conn.rollback()
         raise
 
-def write_user_to_rds(event):
+def write_user_to_rds(event: dict) -> UserInstance:
     user_instance = validate_user_instance(event)
     insert_user(user_instance)
     logger.info("User written to RDS")
     return user_instance
 
-def handler(event, context):
+def handler(event: dict, context: Any) -> dict:
     logger.info(f"Handler called with event: {event}")
     try:
         user_instance = write_user_to_rds(event)
-        add_user_to_group(event.get("userPoolId"), user_instance.get("email"), user_instance.get("role"))
+        add_user_to_group(event["userPoolId"], user_instance["email"], user_instance["role"])
         log_audit(
             "INFO",
             message="user written to RDS successfully",
             userId=event.get("user_id"),
-            service=context.function_name,
+            service=context.gfunction_name,
             event="WRITE_USER_TO_RDS",
             status="SUCCESS",
             requestId=context.aws_request_id,

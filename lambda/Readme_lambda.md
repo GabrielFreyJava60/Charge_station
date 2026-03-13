@@ -20,10 +20,12 @@ Lambda functions for the Charging Stations Control System. They are invoked dire
 
 ### Prerequisites
 
+- **AWS CLI v2** – installed and IDE logged in to AWS IAM role with Admin permissions. Run `aws configure` once and configure credentials.
 - **Docker Desktop** – installed and running (needed for `sam build --use-container` so dependencies such as psycopg2 build correctly).
 - **AWS Secrets Manager** – a secret with at least `username` and `password`. The template uses **DBSecretArn** only to **initialise the RDS instance** at create time (CloudFormation resolves it). Lambdas use **IAM database authentication** at runtime (no secret at runtime).
 - **VPC and private subnets** – template parameters: **VpcId**, **PrivateSubnet1Id**, **PrivateSubnet2Id** (same subnets for RDS, Lambdas, and VPC endpoints).
 - **pgAdmin** (or any PostgreSQL client) – to connect to RDS once to run `GRANT rds_iam` for the DB user (one-time setup).
+- **Pyhon packages** - `pip install boto3 mypy` - boto3 for lambda invocations from IDE, myoy optional for type checking
 
 ### Single stack (Cognito, RDS, Lambdas, Health)
 

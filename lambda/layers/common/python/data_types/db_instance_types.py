@@ -3,10 +3,10 @@ from datetime import datetime
 
 class UserInstance(TypedDict):
     user_id: str
-    username: str
+    full_name: str
     email: str
     phone: Optional[str]
     role: Literal["USER", "ADMIN", "TECH_SUPPORT"]
-    status: Literal["ACTIVE", "BLOCKED", "INACTIVE", "DISABLED"]
+    status: Literal["ACTIVE", "BANNED", "DISABLED"] | None
     created_at: datetime
     updated_at: Optional[datetime]

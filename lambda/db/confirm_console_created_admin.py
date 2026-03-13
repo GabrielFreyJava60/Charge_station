@@ -3,12 +3,13 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 from utils.logger import logger, log_audit
+from typing import Any
 
 CLIENT_ID = os.environ["COGNITO_CLIENT_ID"]          # from template
 COGNITO_REGION = os.environ.get("COGNITO_REGION", "il-central-1")
 
 
-def initiate_auth(client, username: str, password: str) -> dict:
+def initiate_auth(client: boto3.client, username: str, password: str) -> dict:
     return client.initiate_auth(
         AuthFlow="USER_PASSWORD_AUTH",
         ClientId=CLIENT_ID,
@@ -20,7 +21,7 @@ def initiate_auth(client, username: str, password: str) -> dict:
 
 
 def respond_to_new_password_challenge(
-    client, username: str, new_password: str, session: str
+    client: boto3.client, username: str, new_password: str, session: str
 ) -> dict:
     return client.respond_to_auth_challenge(
         ClientId=CLIENT_ID,
@@ -33,28 +34,21 @@ def respond_to_new_password_challenge(
         },
     )
 
-def handler(event, context):
+def handler(event: dict, context: Any) -> dict:
     logger.info(f"Handler called with event: {event}")
     try:
         username = event.get("username")
         password = event.get("password")
         new_password = event.get("new_password")
-
         if not username or not password:
             raise ValueError("Username and password are required")
-
         client = boto3.client("cognito-idp", region_name=COGNITO_REGION)
-
         resp = initiate_auth(client, username, password)
-        
-
         challenge_name = resp.get("ChallengeName")
-
         # First login: NEW_PASSWORD_REQUIRED challenge
         if challenge_name == "NEW_PASSWORD_REQUIRED":
             if not new_password:
                 raise ValueError("New password is required during first login")
-
             resp = respond_to_new_password_challenge(
                 client, username, new_password, resp["Session"]
             )
@@ -68,7 +62,6 @@ def handler(event, context):
         else:
             # No challenge => normal successful auth
             message = "Login successful"
-
         auth_result = resp.get("AuthenticationResult", {}) or {}
         log_audit(
             "INFO",

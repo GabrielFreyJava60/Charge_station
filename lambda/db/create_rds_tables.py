@@ -3,10 +3,11 @@ import os
 import boto3
 import psycopg2
 from utils.logger import logger, log_audit
+from typing import Any
 
 _conn = None
 
-def get_db_config():
+def get_db_config() -> dict:
     return {
         "host": os.environ["DB_HOST"],
         "port": int(os.environ.get("DB_PORT", "5432")),
@@ -15,7 +16,7 @@ def get_db_config():
         "region": os.environ.get("AWS_REGION", "il-central-1"),
     }
 
-def get_connection():
+def get_connection() -> psycopg2.extensions.connection:
     global _conn
     if _conn is None or _conn.closed:
         cfg = get_db_config()
@@ -37,7 +38,7 @@ def get_connection():
         )
     return _conn
 
-def create_tables():
+def create_tables() -> None:
     logger.info("Connecting to DB...")
     conn = get_connection()
     logger.info("Connected. Creating tables...")
@@ -59,7 +60,7 @@ def create_tables():
     finally:
         conn.close()
 
-def handler(event, context):
+def handler(event: dict, context: Any) -> dict:
     logger.info(f"Handler called with event: {event}")
     try:
         log_audit(
