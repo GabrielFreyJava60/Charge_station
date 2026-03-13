@@ -1,6 +1,6 @@
 # Charging Stations – Lambda Backends
 
-Lambda functions for the Charging Stations Control System. They are invoked directly (e.g. from Node.js or run scripts) or by AWS (Cognito Post Confirmation trigger). Callers get a synchronous response; there is no SNS subscription.
+Lambda functions for the Charging Stations Control System. They are invoked directly (e.g. from Node.js or run scripts) or by AWS (Cognito PostConfirmation and PostAuthentication triggers). Callers get a synchronous response; there is no SNS subscription.
 
 ---
 
@@ -8,8 +8,9 @@ Lambda functions for the Charging Stations Control System. They are invoked dire
 
 | Path | Purpose |
 |------|---------|
-| `lambda/routes` | Route Lambdas (e.g. health). One SAM template. |
-| `lambda/db` | DB and auth Lambdas (RDS, Cognito), run scripts, RDS table creation. One SAM template. |
+| `lambda/` | Single SAM template (`template.yaml`) and `samconfig.toml`; deploy from here. |
+| `lambda/db` | DB and auth Lambdas (RDS, Cognito), run scripts, RDS table creation. |
+| `lambda/routes` | Route Lambdas (e.g. health). |
 | `lambda/layers/common` | Shared layer: logger, `log_audit`, data types, utils. |
 | `lambda/tests/integration` | Integration tests that invoke deployed Lambdas. |
 
@@ -19,24 +20,25 @@ Lambda functions for the Charging Stations Control System. They are invoked dire
 
 ### Prerequisites
 
-- **Docker Desktop** – installed and running (needed for `sam build --use-container` when building the **db** stack; e.g. psycopg2).
-- **AWS Secrets Manager** – a secret with PostgreSQL fields: `host`, `port`, `dbname`, `username`, `password`. The **db** template uses this secret only to **initialise the RDS instance credentials at create time** (CloudFormation resolves it), not at Lambda runtime.
-- **Cognito User Pool** – **ALLOW_USER_PASSWORD_AUTH** enabled; email and username as required attributes. Template parameters: `CognitoClientId`, `CognitoUserPoolArn`.
-- **pgAdmin** - to connect with the **db** in order to set up issuing IAM acess tokens to lambdas and run queries for dev purposes
+- **AWS CLI v2** – installed and IDE logged in to AWS IAM role with Admin permissions. Run `aws configure` once and configure credentials.
+- **Docker Desktop** – installed and running (needed for `sam build --use-container` so dependencies such as psycopg2 build correctly).
+- **AWS Secrets Manager** – a secret with at least `username` and `password`. The template uses **DBSecretArn** only to **initialise the RDS instance** at create time (CloudFormation resolves it). Lambdas use **IAM database authentication** at runtime (no secret at runtime).
+- **VPC and private subnets** – template parameters: **VpcId**, **PrivateSubnet1Id**, **PrivateSubnet2Id** (same subnets for RDS, Lambdas, and VPC endpoints).
+- **pgAdmin** (or any PostgreSQL client) – to connect to RDS once to run `GRANT rds_iam` for the DB user (one-time setup).
+- **Pyhon packages** - `pip install boto3 mypy` - boto3 for lambda invocations from IDE, myoy optional for type checking
 
+### Single stack (Cognito, RDS, Lambdas, Health)
 
-### DB stack
-
-From **`lambda/db`**:
+From **`lambda`**:
 
 ```bash
 sam build --use-container
 sam deploy --guided   # first time; then sam deploy
 ```
 
-Use `--use-container` so dependencies (e.g. psycopg2 on Python 3.12) build correctly. On first deploy, set VPC, subnets, DB secret ARN, Cognito IDs, invoker account ID(s); save to `samconfig.toml` for later runs.
+Use `--use-container` so dependencies (e.g. psycopg2 on Python 3.12) build correctly. On first deploy, set VPC, subnets, DB secret ARN, invoker account ID(s); save to `samconfig.toml` for later runs.
 
-After the DB instance is created, you must run a one‑time GRANT so the DB user can use IAM authentication. A simple way is:
+The template provisions: **Cognito** (User Pool, client, groups ADMIN/USER/SUPPORT), **RDS** PostgreSQL (IAM auth, private), **VPC endpoints** (RDS API for auth tokens, Cognito IdP so the write Lambda can add users to groups from inside the VPC without NAT), **Lambdas** (WriteUserRDS, GetUserInfo, CreateRDSTables, ConfirmConsoleCreatedAdmin, Health), and permissions.
 
 1. In the RDS console, temporarily:
    - On the **Databases** tab of **Aurora and RDS** page select desired **db**, in Modify - Connectivity - Additional configuration set **Publicly accessible = Yes** apply the change and waid for **db** to modify.
@@ -51,34 +53,25 @@ After the DB instance is created, you must run a one‑time GRANT so the DB user
    - **Server Name**: choose name for the connection
    
 3. Run:
-
    ```sql
-   GRANT rds_iam TO `<db username (from the previous step)>`;
+   GRANT rds_iam TO "<username>";
    ```
-
-4. When done, **revert** the RDS instance to **Publicly accessible = No** and remove the temporary inbound rule from the security group.
-
-### Routes stack
-
-From **`lambda/routes`**:
-
-```bash
-sam build
-sam deploy --guided   # first time; then sam deploy
-```
-
-No Docker required. Provide invoker account ID(s) when prompted.
+   (Use the same `username` as in the secret.)
+4. Revert RDS to **Publicly accessible = No** and remove the temporary inbound rule.
 
 ### Adding a Cognito self-signup user
 
-1. Sign up:
+Use the **User Pool Client ID** from the stack output (or Cognito console). Replace `<region>`, `<client-id>`, `<email>`.
+
+1. Sign up (username = email):
    ```bash
-   aws cognito-idp sign-up --region <region> --client-id <client-id> --username <username> --password '<password>' --user-attributes Name=email,Value=<email>
+   aws cognito-idp sign-up --region <region> --client-id <client-id> --username <email> --password '<password>' --user-attributes Name=email,Value=<email> Name=name,Value="Your Name"
    ```
 2. Confirm with the code from email:
    ```bash
-   aws cognito-idp confirm-sign-up --region <region> --client-id <client-id> --username <username> --confirmation-code <code>
+   aws cognito-idp confirm-sign-up --region <region> --client-id <client-id> --username <email> --confirmation-code <code>
    ```
+   The **WriteUserRDS** Lambda runs on PostConfirmation (and PostAuthentication), writes the user to RDS, and adds them to the Cognito group USER (or ADMIN for PostAuthentication).
 
 ---
 
@@ -91,12 +84,13 @@ Invoke permission is per **AWS account**. At deploy time, set:
 
 ---
 
-## Routes stack – functions
+## Functions
 
 ### Health – `charging-stations-health`
 
 - **Payload:** `{}` or any JSON.
 - **Response:** `{"code": 200, "status": "running"}`.
+- **Invoker:** Cross-account (invoker account IDs in template).
 
 **Integration test** (from `lambda`, with boto3 and IAM allowing `lambda:InvokeFunction`):
 
@@ -104,28 +98,29 @@ Invoke permission is per **AWS account**. At deploy time, set:
 python -m tests.integration.routes.health_invoker <account_id>
 ```
 
-Exits 0 on success; on failure prints assertion and traceback.
-
 ---
 
-## DB stack – functions
+### DB stack – functions
 
-The **db** template provisions RDS (PostgreSQL), VPC/security groups, an RDS interface VPC endpoint (for IAM token generation), four Lambdas, and permissions (cross-account + Cognito for WriteUserRDS).  
-DB Lambdas use **IAM database authentication** (short‑lived auth tokens from the RDS API) instead of a stored DB password or Secrets Manager at runtime.
+The template provisions **RDS** (PostgreSQL, IAM auth), **VPC endpoints** (RDS API for `generate_db_auth_token`, **Cognito IdP** so the write Lambda can call `AdminAddUserToGroup` from inside the VPC without NAT), and these Lambdas. DB Lambdas run in the VPC and use IAM database authentication (no Secrets Manager at runtime).
 
 | Function | Purpose | Invoker |
 |----------|---------|--------|
 | **charging-stations-create-rds-tables** | Create RDS tables (e.g. `users`). | Script or cross-account. |
-| **charging-stations-write-user-rds** | Insert user into RDS after sign-up. | Cognito (Post Confirmation trigger). |
+| **charging-stations-write-user-rds** | Write user to RDS and add to Cognito group. | Cognito (PostConfirmation + PostAuthentication). |
 | **charging-stations-get-user-info** | Return user by `user_id` from RDS. | Backend or cross-account. |
-| **charging-stations-confirm-console-created-admin** | Cognito auth (initiate auth, new-password challenge). | Script or backend. |
+| **charging-stations-confirm-console-created-admin** | Cognito auth (InitiateAuth, NEW_PASSWORD_REQUIRED with `name`). | Script or backend. |
+
+**WriteUserRDS** – Triggered by Cognito PostConfirmation and PostAuthentication. Inserts the user into RDS (from `request.userAttributes`: sub, email, name, etc.) and calls Cognito `AdminAddUserToGroup` (role **USER** by default, **ADMIN** when `triggerSource` is PostAuthentication - for console-created user). **full_name** - if missing or Cognito sends the placeholder `cognito:default_val`, it is stored as **"Console User"**. Must return the same event to Cognito.
+
+**ConfirmConsoleCreatedAdmin** – For first login (NEW_PASSWORD_REQUIRED), the Lambda sends `userAttributes.name` in the challenge response (default **"Console User"**) because console-created user by default does not have `name`. 
 
 ### Request/response (plain JSON)
 
 - **CreateRDSTables** – Payload optional (e.g. `{"trigger": "script_run"}`). Returns handler result.
-- **WriteUserRDS** – Event from Cognito (`request.userAttributes`, `userName`). Must **return the same event** so Cognito continues.
+- **WriteUserRDS** – Event from Cognito. Returns the same event.
 - **GetUserInfo** – Payload: `{"user_id": "<uuid>"}`. Response: `{"userId", "username", "email", "phone", "role", "status", "createdAt", "updatedAt"}` or `{"error": "..."}`.
-- **ConfirmConsoleCreatedAdmin** – Payload: `{"username", "password", "new_password"}` (`new_password` only when first login / NEW_PASSWORD_REQUIRED). Response: `{"message", "accessToken", "idToken", "refreshToken"}` or exception.
+- **ConfirmConsoleCreatedAdmin** – Payload: `{"username", "password", "new_password", "name"}` (`new_password` when NEW_PASSWORD_REQUIRED; `name` optional, default "Console User"). Response: `{"message", "accessToken", "idToken", "refreshToken"}` or exception.
 
 ### Run scripts
 
@@ -143,17 +138,21 @@ python run_create_rds_tables.py
 python run_confirm_console_created_admin.py <account_id> <username> <password> <new_password>
 ```
 
-`new_password` is required only when Cognito returns the NEW_PASSWORD_REQUIRED challenge.
+### Integration tests
 
-### Integration test – GetUserInfo
+From **`lambda`** (with boto3 and IAM allowing `lambda:InvokeFunction` on the target account).
 
-From **`lambda`**:
+**Health** – no extra data needed; exits 0 on success:
 
 ```bash
-python -m tests.integration.read.get_user_info_lambda_invoker <account_id> <user_id>
+python -m tests.integration.routes.health_invoker <invoker account_id>
 ```
 
-Requires a real `user_id` in RDS. Asserts `StatusCode == 200` and `response_json['userId'] == user_id`.
+**GetUserInfo** – requires a real `user_id` in RDS; asserts `StatusCode == 200` and `response_json['userId'] == user_id`:
+
+```bash
+python -m tests.integration.read.get_user_info_lambda_invoker <invoker account_id> <user_id>
+```
 
 ---
 
@@ -182,5 +181,4 @@ Lambdas use **`log_audit`** (from `utils.logger` in the common layer) to write o
 
 ## Adding new Lambdas
 
-- **Routes:** Add the function resource and an `AWS::Lambda::Permission` for each invoker account in `lambda/routes/template.yaml`.
-- **DB (or other stack):** Same pattern in that stack’s `template.yaml`: new function + permissions (and layers/env as needed).
+Add the function resource and any `AWS::Lambda::Permission` (e.g. for cross-account or Cognito) in **`lambda/template.yaml`**. Use the same pattern as existing functions: `CodeUri`, `Handler`, `Layers`, `VpcConfig` for DB Lambdas, env vars, and IAM policies.

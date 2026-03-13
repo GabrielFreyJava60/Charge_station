@@ -3,10 +3,11 @@ import json
 import boto3
 import psycopg2
 from utils.logger import logger, log_audit
+from typing import Any
 
 _conn = None
 
-def get_db_config():
+def get_db_config() -> dict:
     return {
         "host": os.environ["DB_HOST"],
         "port": int(os.environ.get("DB_PORT", "5432")),
@@ -14,7 +15,7 @@ def get_db_config():
         "user": os.environ["DB_USER"],
         "region": os.environ.get("AWS_REGION", "il-central-1"),
     }
-def get_connection():
+def get_connection() -> psycopg2.extensions.connection:
     global _conn
     if _conn is None or _conn.closed:
         cfg = get_db_config()
@@ -35,32 +36,32 @@ def get_connection():
         )
     return _conn
 
-def extract_user_id_from_event(event):
+def extract_user_id_from_event(event: dict) -> str:
     logger.info(f"Extracting user id")
     user_id = event.get("user_id")
     if not user_id:
         raise ValueError("user_id is required")
     return user_id
 
-def get_user_info(user_id):
+def get_user_info(user_id: str) -> tuple:
     conn = get_connection()
     with conn.cursor() as cur:
         cur.execute("SELECT * FROM users WHERE user_id = %s", (user_id,))
         return cur.fetchone()
 
-def build_json(user_info):
+def build_json(user_info: tuple) -> dict:
     return {
-                "userId": user_info[0],
-                "username": user_info[1],
+                "user_id": user_info[0],
+                "full_name": user_info[1],
                 "email": user_info[2],
                 "phone": user_info[3],
                 "role": user_info[4],
                 "status": user_info[5],
-                "createdAt": user_info[6].isoformat() if user_info[6] else None,
-                "updatedAt": user_info[7].isoformat() if user_info[7] else None,
-            }
+                "created_at": user_info[6].isoformat() if user_info[6] else None,
+                "updated_at": user_info[7].isoformat() if user_info[7] else None,
+    }
 
-def handler(event, context):
+def handler(event: dict, context: Any) -> dict:
     logger.info(f"Handler called with event: {event}")
     try:
         user_id = extract_user_id_from_event(event)
