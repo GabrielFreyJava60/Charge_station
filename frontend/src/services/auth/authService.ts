@@ -17,6 +17,7 @@ import { config } from '@/config/env';
 import { parseJwt } from "./jwtService";
 import type { AuthDataType, AuthPayload, UserRole } from "@/types";
 import { NotConfirmedError } from "@/types/errors";
+import { ADMIN_GROUP_NAME, SUPPORT_GROUP_NAME } from "@/types/constants";
 
 const logger = getLogger("authService");
 
@@ -48,38 +49,6 @@ export const initiateSignIn = async (email: string, password: string): Promise<A
     throw error;
   }
 };
-
-export const signIn = async (email: string, password: string): Promise<AuthDataType> => {
-  const authResult = await initiateSignIn(email, password);
-  if (!authResult) {
-    throw Error("Empty authentication result");
-  }
-  const { AccessToken, IdToken } = authResult;
-  if (!AccessToken) {
-    throw Error("No access token retrieved");
-  }
-  if (!IdToken) {
-    throw new Error("No ID token retrieved");
-  }
-  logger.debug(".signIn IdToken: ", IdToken);
-  const payload: AuthPayload = parseJwt(IdToken);
-  const sub = payload?.sub;
-  const groups = payload["cognito:groups"] ?? [];
-  if (!sub) {
-    throw Error("Wrong token format");
-  }
-  let userRole: UserRole = 'USER';
-  if (groups.includes("administrators")) {
-    userRole = 'ADMIN';
-  }
-  else if (groups.includes("support")) {
-    userRole = 'SUPPORT';
-  }
-  return {
-    user: { id: sub, email: payload.email ?? email, userRole },
-    session: {accessToken: AccessToken},
-  }
-}
 
 export const signUp = async (email: string, password: string, name: string) => {
   const params: SignUpCommandInput = {
@@ -138,5 +107,39 @@ export const resendConfirmationCode = async (username: string) => {
   } catch (error) {
     logger.error("Error resending confirmation code: ", error);
     throw error;
+  }
+}
+
+function getUserRole(userGroups: string[]): UserRole {
+  if (userGroups.includes(ADMIN_GROUP_NAME)) {
+    return "ADMIN";
+  }
+  if (userGroups.includes(SUPPORT_GROUP_NAME)) {
+    return "SUPPORT";
+  }
+  return "USER";
+}
+
+export const signIn = async (email: string, password: string): Promise<AuthDataType> => {
+  const authResult = await initiateSignIn(email, password);
+  if (!authResult) {
+    throw Error("Empty authentication result");
+  }
+  const { AccessToken, IdToken } = authResult;
+  if (!AccessToken) {
+    throw Error("No access token retrieved");
+  }
+  if (!IdToken) {
+    throw new Error("No ID token retrieved");
+  }
+  const payload: AuthPayload = parseJwt(IdToken);
+  const sub = payload?.sub;
+  if (!sub) {
+    throw Error("Wrong token format");
+  }
+  const userRole = getUserRole(payload["cognito:groups"] ?? []);
+  return {
+    user: { id: sub, email: payload.email ?? email, userRole },
+    session: {accessToken: AccessToken},
   }
 }
