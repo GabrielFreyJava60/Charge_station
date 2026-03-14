@@ -102,15 +102,7 @@ Resources:
       UserPoolId: !Ref UserPool
       Description: Admin users for console
       Precedence: 1
-
-  UserGroup:
-    Type: AWS::Cognito::UserPoolGroup
-    Properties:
-      GroupName: USER
-      UserPoolId: !Ref UserPool
-      Description: Regular users
-      Precedence: 20
-
+      
   SupportGroup:
     Type: AWS::Cognito::UserPoolGroup
     Properties:
