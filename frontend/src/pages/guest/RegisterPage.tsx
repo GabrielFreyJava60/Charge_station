@@ -13,14 +13,18 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const { signUp } = useAuth();
 
-  const signUpHandler = async (email: string,password: string, confirmPassword?: string) => {
+  const signUpHandler = async (email: string, password: string, confirmPassword?: string, name?: string) => {
     if (password !== confirmPassword) {
       logger.debug("Passwords do not match");
       setErrorMessage("Passwords do not match");
       return;
     }
+    if (!name) {
+      setErrorMessage("Name is required");
+      return;
+    }
     try {
-      await signUp(email, password);
+      await signUp(email, password, name);
       logger.debug("Sign up successful");
       navigate("/confirm", { state: { email } });
     } catch (error) {

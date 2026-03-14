@@ -1,5 +1,5 @@
 import { useState, type FC, type PropsWithChildren } from "react";
-import type { UserRole, AuthSession, User, AuthContextType } from "@/types";
+import type { AuthSession, User, AuthContextType } from "@/types";
 import { AuthContext } from "./context";
 import { signIn, signUp } from "@/services/auth/authService";
 import { getLogger } from "@/services/logging";
@@ -13,7 +13,6 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         const token = restoreToken();
         return token ? { accessToken: token } : null;
     });
-    const [userRole, setUserRole] = useState<UserRole | null>(() => user?.userRole ?? null);
     const [loading, setLoading] = useState<boolean>(false);
     
     
@@ -22,7 +21,6 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         try {
             const authResult = await signIn(email, password);
             setUser(authResult.user);
-            setUserRole(authResult.user.userRole);
             setSession(authResult.session);
             saveUser(authResult.user);
             saveToken(authResult.session.accessToken);
@@ -41,20 +39,20 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
     const signOutHandler = async () => {
         setUser(null);
-        setUserRole(null);
         setSession(null);
         clearSessionStorage();
         logger.debug("SIGN OUT DONE");
     }
 
-    const signUpHandler = async (email: string, password: string) => {
-        await signUp(email, password);
+    const signUpHandler = async (email: string, password: string, name: string) => {
+        await signUp(email, password, name);
         logger.debug("SIGN UP COMPLETE");
     }
     
     const value: AuthContextType = {
         user,
-        userRole,
+        userRole: user?.userRole ?? null,
+        isAuthenticated: !!user,
         session,
         loading,
         signIn: signInHandler,
