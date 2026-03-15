@@ -33,6 +33,11 @@ export const env = {
     'arn:aws:lambda:il-central-1:852215679994:function:charging-stations-get-user-info'
   ),
 
+  // stations
+  stationsLambdaFunctionName: String(
+    process.env.STATIONS_LAMBDA_FUNCTION_NAME ?? 'charging-stations-station-service'
+  ),
+
   // misc
   environment: String(process.env.ENVIRONMENT ?? 'local'),
   logLevel: String(process.env.LOG_LEVEL ?? 'info')

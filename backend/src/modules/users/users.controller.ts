@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { createLogger } from '../../utils/logger';
+import { wrapResponse } from '../../common/wrappers';
 import type { UsersService } from './users.service';
 
 const logger = createLogger('users.controller');
@@ -19,16 +20,15 @@ export class UsersController {
 
   getMe = async (req: Request, res: Response) => {
     if (!req.user?.sub) {
-      return res.status(401).json({ code: 401, error: { message: 'Unauthorized' } });
+      return res
+        .status(401)
+        .json({ error: { code: 'UNAUTHENTICATED', message: 'Authentication required' } });
     }
 
     const userId = req.user.sub;
     const userInfo = await this.service.getMyInfo(userId);
 
-    res.json({
-      code: 200,
-      data: userInfo
-    });
+    res.status(200).json(wrapResponse(userInfo));
   };
 
   updateMyProfile = async (req: Request, res: Response) => {

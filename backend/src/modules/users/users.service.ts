@@ -35,6 +35,8 @@ export class LambdaUsersService implements UsersService {
     const result = await LAMBDA_INVOKER.invokeJson<UserInfo | { error?: string }>(
       env.userInfoLambdaFunctionName,
       {
+        action: 'get_user_by_id',
+        caller_id: userId,
         user_id: userId
       }
     );
