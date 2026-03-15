@@ -17,7 +17,7 @@ export function useFetchData<T>(
                 setIsError(false);
                 setError(null);
                 try {
-                    const fetchResult = await apiClient.get<T>(endpoint, params);
+                    const fetchResult = await apiClient.get<T>(endpoint, { params });
                     setData(fetchResult);
                 }
                 catch (e) {

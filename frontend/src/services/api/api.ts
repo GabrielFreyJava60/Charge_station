@@ -80,12 +80,12 @@ class ApiClient {
     
     async get<T>(
         endpoint: string,
-        query_params?: Record<string, unknown>,
+        config?: AxiosRequestConfig,
     ): Promise<T> {
-        logger.debug('GET request', { endpoint, params: query_params });
+        logger.debug('GET request', { endpoint, params: config?.params });
         const response = await this.client.get<T>(
             endpoint,
-            {params: query_params},
+            { ...config },
         );
         const { status, data } = response;
         logger.debug("API response", { status, data });
@@ -107,6 +107,55 @@ class ApiClient {
         const { status, data } = response;
         logger.debug(`POST response status = ${status}`);
         logger.debug(`POST response data: `, data);
+        return data;
+    }
+
+    async put<T>(
+        endpoint: string,
+        body?: unknown,
+        config?: AxiosRequestConfig
+    ): Promise<T> {
+        logger.debug('PUT request', { endpoint, body });
+        const response = await this.client.put<T>(
+            endpoint,
+            body,
+            { ...config },
+        );
+        const { status, data } = response;
+        logger.debug(`PUT response status = ${status}`);
+        logger.debug(`PUT response data: `, data);
+        return data;
+    }
+
+    async patch<T>(
+        endpoint: string,
+        body?: unknown,
+        config?: AxiosRequestConfig
+    ): Promise<T> {
+        logger.debug('PATCH request', { endpoint, body });
+        const response = await this.client.patch<T>(
+            endpoint,
+            body,
+            { ...config },
+        );
+        const { status, data } = response;
+        logger.debug(`PATCH response status = ${status}`);
+        logger.debug(`PATCH response data: `, data);
+        return data;
+    }
+
+    async delete<T>(
+        endpoint: string,
+        config?: AxiosRequestConfig,
+    ): Promise<T> {
+        logger.debug('DELETE request', { endpoint, params: config?.params });
+        const response = await this.client.delete<T>(
+            endpoint,
+            { ...config },
+        );
+        const { status, data } = response;
+        logger.debug(`DELETE response status = ${status}`);
+        logger.debug(`DELETE response data: `, data);
         return data;
     }
 }
