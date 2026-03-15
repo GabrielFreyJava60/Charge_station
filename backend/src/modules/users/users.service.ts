@@ -52,6 +52,7 @@ export class LambdaUsersService implements UsersService {
     logger.debug('Invoking userManagement lambda: updateOwnProfile', { userId });
     await LAMBDA_INVOKER.invokeJson(env.userManagementLambdaFunctionName, {
       action: 'updateOwnProfile',
+      caller_id: userId,
       userId,
       payload
     });
@@ -61,6 +62,7 @@ export class LambdaUsersService implements UsersService {
     logger.debug('Invoking userManagement lambda: updateUserProfileAsAdmin', { adminId, userId });
     await LAMBDA_INVOKER.invokeJson(env.userManagementLambdaFunctionName, {
       action: 'updateUserProfileAsAdmin',
+      caller_id: adminId,
       adminId,
       userId,
       payload
@@ -71,6 +73,7 @@ export class LambdaUsersService implements UsersService {
     logger.debug('Invoking userManagement lambda: updateUserRole', { adminId, userId, role });
     await LAMBDA_INVOKER.invokeJson(env.userManagementLambdaFunctionName, {
       action: 'updateUserRole',
+      caller_id: adminId,
       adminId,
       userId,
       role
@@ -81,6 +84,7 @@ export class LambdaUsersService implements UsersService {
     logger.debug('Invoking userManagement lambda: deleteUser', { adminId, userId });
     await LAMBDA_INVOKER.invokeJson(env.userManagementLambdaFunctionName, {
       action: 'deleteUser',
+      caller_id: adminId,
       adminId,
       userId
     });

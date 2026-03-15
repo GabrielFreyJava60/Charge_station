@@ -6,9 +6,9 @@ import { createLogger } from '../../utils/logger';
 
 
 export interface StationsService {
-  list(): Promise<StationDto[]>;
-  getById(stationId: string): Promise<StationDto | null>;
-  create(payload: Omit<StationDto, 'stationId' | 'status'>): Promise<StationDto>;
+  list(callerId: string): Promise<StationDto[]>;
+  getById(stationId: string, callerId: string): Promise<StationDto | null>;
+  create(payload: Omit<StationDto, 'stationId' | 'status'>, callerId: string): Promise<StationDto>;
   updateStatus(
     stationId: string,
     status: StationStatus,
@@ -43,15 +43,15 @@ export class MockStationsService implements StationsService {
     }
   ];
 
-  async list(): Promise<StationDto[]> {
+  async list(_callerId: string): Promise<StationDto[]> {
     return this.stations;
   }
 
-  async getById(stationId: string): Promise<StationDto | null> {
+  async getById(stationId: string, _callerId: string): Promise<StationDto | null> {
     return this.stations.find((s) => s.stationId === stationId) ?? null;
   }
 
-  async create(payload: Omit<StationDto, 'stationId' | 'status'>): Promise<StationDto> {
+  async create(payload: Omit<StationDto, 'stationId' | 'status'>, _callerId: string): Promise<StationDto> {
     const station: StationDto = {
       stationId: `st-${String(this.stations.length + 1).padStart(3, '0')}`,
       status: 'READY',
@@ -77,27 +77,30 @@ export class MockStationsService implements StationsService {
 }
 
 export class LambdaStationsService implements StationsService {
-  async list(): Promise<StationDto[]> {
-    logger.debug('Invoking stations lambda: list');
+  async list(callerId: string): Promise<StationDto[]> {
+    logger.debug('Invoking stations lambda: list', { callerId });
     const result = await LAMBDA_INVOKER.invokeJson<StationDto[]>(env.stationsLambdaFunctionName, {
-      action: 'list_stations'
+      action: 'list_stations',
+      caller_id: callerId
     });
     return result;
   }
 
-  async getById(stationId: string): Promise<StationDto | null> {
-    logger.debug('Invoking stations lambda: getById', { stationId });
+  async getById(stationId: string, callerId: string): Promise<StationDto | null> {
+    logger.debug('Invoking stations lambda: getById', { stationId, callerId });
     const result = await LAMBDA_INVOKER.invokeJson<StationDto | null>(env.stationsLambdaFunctionName, {
       action: 'get_station_by_id',
-      stationId
+      stationId,
+      caller_id: callerId
     });
     return result;
   }
 
-  async create(payload: Omit<StationDto, 'stationId' | 'status'>): Promise<StationDto> {
-    logger.debug('Invoking stations lambda: create', { payload });
+  async create(payload: Omit<StationDto, 'stationId' | 'status'>, callerId: string): Promise<StationDto> {
+    logger.debug('Invoking stations lambda: create', { payload, callerId });
     const result = await LAMBDA_INVOKER.invokeJson<StationDto>(env.stationsLambdaFunctionName, {
       action: 'create_station',
+      caller_id: callerId,
       payload
     });
     return result;

@@ -47,7 +47,8 @@ export class StationsController {
   constructor(private readonly service: StationsService) {}
 
   list = async (req: Request, res: Response) => {
-    const data = await this.service.list();
+    const callerId = req.user?.sub ?? '';
+    const data = await this.service.list(callerId);
 
     const groups = req.user?.groups ?? [];
     const hasRole = groups.length > 0;
@@ -69,7 +70,8 @@ export class StationsController {
 
   getById = async (req: Request, res: Response) => {
     const stationId = idSchema.parse(req.params.stationId);
-    const data = await this.service.getById(stationId);
+    const callerId = req.user?.sub ?? '';
+    const data = await this.service.getById(stationId, callerId);
     if (!data) {
       return res
         .status(404)
@@ -80,7 +82,8 @@ export class StationsController {
 
   create = async (req: Request, res: Response) => {
     const payload = createStationSchema.parse(req.body);
-    const station = await this.service.create(payload);
+    const callerId = req.user?.sub ?? '';
+    const station = await this.service.create(payload, callerId);
     res.status(201).json({ code: 201, data: station });
   };
 
@@ -88,13 +91,13 @@ export class StationsController {
     const stationId = idSchema.parse(req.params.stationId);
     const { status: nextStatus } = updateStatusSchema.parse(req.body);
 
-    const station = await this.service.getById(stationId);
+    const callerId = req.user?.sub ?? '';
+    const station = await this.service.getById(stationId, callerId);
     if (!station) {
       return res.status(404).json({ code: 404, error: { message: 'Station not found' } });
     }
 
     const groups = req.user?.groups ?? [];
-    const userId = req.user?.sub ?? 'unknown';
 
     if (!canChangeStatus(station.status, nextStatus, groups)) {
       return res.status(403).json({
@@ -103,7 +106,7 @@ export class StationsController {
       });
     }
 
-    const updated = await this.service.updateStatus(stationId, nextStatus, userId, groups);
+    const updated = await this.service.updateStatus(stationId, nextStatus, callerId, groups);
     res.json({ code: 200, data: updated });
   };
 }
