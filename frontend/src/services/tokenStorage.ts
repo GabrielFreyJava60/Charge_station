@@ -1,7 +1,7 @@
 let accessToken: string | null = null
 
 export const tokenStorage = {
-    hasRefreshToken: () => !!localStorage.getItem("refreshToken"),
+    hasRefreshToken: () => !!sessionStorage.getItem("refreshToken"),
 
     getAccessToken: () => accessToken,
 

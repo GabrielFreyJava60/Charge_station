@@ -167,7 +167,7 @@ export const getTokensFromRefreshToken = async (refreshToken: string) => {
   if (!authResult) {
     throw Error("Empty authentication result");
   }
-  return unpackAuthResult(authResult);
+  return unpackAuthResult(authResult, refreshToken);
 };
 
 export const signIn = async (email: string, password: string): Promise<AuthDataType> => {

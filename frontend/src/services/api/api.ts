@@ -7,6 +7,8 @@ import { ForbiddenError, HttpError, UnauthorizedError } from '@/types/errors'
 import type { AuthDataType } from '@/types';
 import { tokenStorage } from '../tokenStorage';
 import { getTokensFromRefreshToken } from '../auth/authService';
+import { store } from "@/store/store";
+import { logout } from "@/store/authSlice";
 
 const logger = getLogger("ApiClient");
 
@@ -73,7 +75,7 @@ class ApiClient {
                         const isRetry: boolean = originalConfig?._isRetry ?? false;
                         const refreshToken: string | null = tokenStorage.getRefreshToken();
                         if (!originalConfig || isRetry || !refreshToken) {
-                            tokenStorage.clear();
+                            store.dispatch(logout());
                             throw new UnauthorizedError(errorMessage);
                         }
                         try {
@@ -90,11 +92,12 @@ class ApiClient {
                             originalConfig._isRetry = true;
                             return this.client.request(originalConfig);
                         } catch {
-                            tokenStorage.clear();
+                            store.dispatch(logout());
                             throw new UnauthorizedError(errorMessage);
                         }
                     }
                     if (status === 403) {
+                        store.dispatch(logout());
                         throw new ForbiddenError(errorMessage);
                     }
                     throw new HttpError(errorMessage, errorCode, status);
