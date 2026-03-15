@@ -1,2 +1,3 @@
 export { store } from "./store";
-export * from "./hooks";
+export {useAppDispatch, useAppSelector} from "./hooks";
+export { logout, login, restoreSession } from "./authSlice";

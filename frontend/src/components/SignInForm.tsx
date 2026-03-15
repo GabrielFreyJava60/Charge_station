@@ -15,13 +15,24 @@ const SignInForm: FC<SignInFormProps> = ({isRegister, submitHandler}) => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string | undefined>(undefined);
-  const [name, setName] = useState<string | undefined>(undefined);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   
   const navigate = useNavigate();
 
   const handleSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    submitHandler(email, password, confirmPassword, name);
+    const combinedName = isRegister ? `${firstName.trim()} ${lastName.trim()}`.trim() : undefined;
+    submitHandler(email, password, confirmPassword, combinedName);
+  };
+
+  const handleConfirmExistingAccount = () => {
+    const trimmedEmail = email.trim();
+    navigate("/confirm", {
+      state: {
+        email: trimmedEmail || undefined,
+      },
+    });
   };
 
   return (
@@ -46,11 +57,24 @@ const SignInForm: FC<SignInFormProps> = ({isRegister, submitHandler}) => {
         <div>
           <input
             className="inputText"
-            id="name"
+            id="firstName"
             type="text"
-            value={name ?? ""}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="First Name"
+            required
+          />
+        </div>
+      )}
+      {isRegister && (
+        <div>
+          <input
+            className="inputText"
+            id="lastName"
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Last Name"
             required
           />
         </div>
@@ -81,6 +105,9 @@ const SignInForm: FC<SignInFormProps> = ({isRegister, submitHandler}) => {
       )}
       <button type="submit">{isRegister ? "Sign Up" : "Sign In"}</button>
     </form>
+    <button type="button" onClick={handleConfirmExistingAccount}>
+      Confirm existing account
+    </button>
     <button type="button" onClick={isRegister? () => navigate("/login"): () => navigate("/register")}>
       {isRegister
         ? "Already have an account? Sign In"

@@ -4,7 +4,6 @@ import { RouterProvider } from 'react-router';
 import './index.css';
 import { getLogger } from '@/services/logging';
 import router from './router/router.tsx';
-import { AuthProvider } from './auth/AuthProvider.tsx';
 import { Provider } from "react-redux";
 import { store } from "./store/store";
 
@@ -14,9 +13,7 @@ logger.info("Application bootstrap");
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <RouterProvider router={router} />
     </Provider>
   </StrictMode>,
 )
