@@ -1522,7 +1522,7 @@ components:
         - userId
         - email
         - role
-        - username
+        - fullName
         - phone
         - status
         - createdAt
@@ -1537,9 +1537,9 @@ components:
         role:
           type: string
           enum: [USER, TECH_SUPPORT, ADMIN]
-        username:
+        fullName:
           type: string
-          example: dana.levi
+          example: Dana Levi
         phone:
           type: string
           example: "+972501234567"
@@ -1601,7 +1601,7 @@ components:
       type: object
       required: [updatedAt]
       properties:
-        username:
+        fullName:
           type: string
         phone:
           type: string
