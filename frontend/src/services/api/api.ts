@@ -4,7 +4,11 @@ import { config } from '@/config/env';
 import { getLogger } from '@/services/logging';
 import { type ApiErrorResponse } from '@/types/apiTypes'
 import { ForbiddenError, HttpError, UnauthorizedError } from '@/types/errors'
-import { restoreToken } from '@/auth/persistence';
+import type { AuthDataType } from '@/types';
+import { tokenStorage } from '../tokenStorage';
+import { getTokensFromRefreshToken } from '../auth/authService';
+import { store } from "@/store/store";
+import { logout } from "@/store/authSlice";
 
 const logger = getLogger("ApiClient");
 
@@ -20,6 +24,7 @@ const CONFIG_ERROR = 'CONFIG_ERROR';
 
 class ApiClient {
     private readonly client: AxiosInstance;
+    private refreshPromise: Promise<AuthDataType> | null = null;
 
     constructor(baseUrl: string, apiPrefix: string, timeout: number) {
         if (!baseUrl) {
@@ -34,8 +39,11 @@ class ApiClient {
         });
         logger.debug(`Created API client. Params: url=${baseUrl}, timeout=${timeout}`);
         this.client.interceptors.request.use(
-            (config) => {
-                const token = restoreToken();
+            async(config) => {
+                if (this.refreshPromise) {
+                    await this.refreshPromise;
+                }
+                const token: string | null = tokenStorage.getAccessToken();
                 if (token) {
                     config.headers = config.headers ?? {};
                     config.headers.Authorization = `Bearer ${token}`;
@@ -47,8 +55,8 @@ class ApiClient {
 
         this.client.interceptors.response.use(
             (response) => response,
-            (error: AxiosError<ApiErrorResponse>) => {
-                const { code, message, response, request } = error;
+            async (error: AxiosError<ApiErrorResponse>) => {
+                const { code, message, response, request, config: originalConfig } = error;
                 logger.debug('Request error: ', {
                     axiosCode: code,
                     axiosMessage: message,
@@ -64,16 +72,39 @@ class ApiClient {
                     const errorMessage = apiError?.message ?? message;
                     const errorCode = apiError?.code ?? SERVER_ERROR;
                     if (status === 401) {
-                        throw new UnauthorizedError(errorMessage);
+                        const isRetry: boolean = originalConfig?._isRetry ?? false;
+                        const refreshToken: string | null = tokenStorage.getRefreshToken();
+                        if (!originalConfig || isRetry || !refreshToken) {
+                            store.dispatch(logout());
+                            throw new UnauthorizedError(errorMessage);
+                        }
+                        try {
+                            if (!this.refreshPromise) {
+                                this.refreshPromise = getTokensFromRefreshToken(refreshToken).finally(
+                                    () => {this.refreshPromise = null;}
+                                );
+                            }
+                            const authResult: AuthDataType = await this.refreshPromise;
+                            tokenStorage.setAccessToken(authResult.session.accessToken);
+                            
+                            originalConfig.headers = originalConfig.headers ?? {};
+                            originalConfig.headers.Authorization = `Bearer ${authResult.session.accessToken}`;
+                            originalConfig._isRetry = true;
+                            return this.client.request(originalConfig);
+                        } catch {
+                            store.dispatch(logout());
+                            throw new UnauthorizedError(errorMessage);
+                        }
                     }
                     if (status === 403) {
+                        store.dispatch(logout());
                         throw new ForbiddenError(errorMessage);
                     }
                     throw new HttpError(errorMessage, errorCode, status);
                 }
                 logger.debug(request ? 'Network error' : 'Configuration error');
                 
-                throw new HttpError(message, request ? NETWORK_ERROR : CONFIG_ERROR);
+                throw new HttpError(message ?? 'Unknown error', request ? NETWORK_ERROR : CONFIG_ERROR);
             }
         );
     }

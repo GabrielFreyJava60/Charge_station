@@ -1,5 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./authSlice";
+import { restoreSession } from "./authSlice";
+import { tokenStorage } from "@/services/tokenStorage";
 
 export const store = configureStore({
   reducer: {
@@ -7,5 +9,10 @@ export const store = configureStore({
   },
 });
 
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+if (tokenStorage.getRefreshToken()) {
+  store.dispatch(restoreSession());
+}
+
+export type AppStore = typeof store;
+export type RootState = ReturnType<AppStore['getState']>;
+export type AppDispatch = AppStore['dispatch'];
