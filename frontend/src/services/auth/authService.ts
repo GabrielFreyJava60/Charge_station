@@ -124,13 +124,16 @@ function getUserRole(userGroups: string[]): UserRole {
 }
 
 
-function unpackAuthResult({ AccessToken, IdToken, RefreshToken, TokenType}: AuthenticationResultType): AuthDataType {
+function unpackAuthResult({ AccessToken, IdToken, RefreshToken, TokenType}: AuthenticationResultType,
+  existingRefreshToken?: string
+): AuthDataType {
   if (!AccessToken) {
     throw Error("No access token retrieved");
   }
   if (!IdToken) {
     throw new Error("No ID token retrieved");
   }
+  RefreshToken = RefreshToken ?? existingRefreshToken;
   if (!RefreshToken) {
     throw new Error("No refresh token retrieved");
   }
