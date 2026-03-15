@@ -759,6 +759,147 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailableResponse'
 
+  /admin/users/{userId}/role:
+    patch:
+      operationId: updateUserRole
+      summary: Change user role
+      description: Changes the role of a user. Setting the role to USER effectively revokes TECH_SUPPORT or ADMIN privileges. Triggers Cognito group sync and permission cascade. Requires admin privileges. The updatedAt field must match the server value to prevent concurrent modification conflicts.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSingleResponse'
+
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+
+        '404':
+          $ref: '#/components/responses/UserNotFoundResponse'
+
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableResponse'
+
+  /admin/users/{userId}/status:
+    patch:
+      operationId: updateUserStatus
+      summary: Block or unblock a user
+      description: Changes the status of a user (block or unblock). May trigger active session termination and token revocation. Requires admin privileges. The updatedAt field must match the server value to prevent concurrent modification conflicts.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserStatusRequest'
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSingleResponse'
+
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+
+        '404':
+          $ref: '#/components/responses/UserNotFoundResponse'
+
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableResponse'
+
+  /admin/users/{userId}/profile:
+    patch:
+      operationId: updateUserProfileAsAdmin
+      summary: Update user profile as admin
+      description: Updates profile fields of a user. Requires admin privileges. The updatedAt field must match the server value to prevent concurrent modification conflicts.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSingleResponse'
+
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+
+        '404':
+          $ref: '#/components/responses/UserNotFoundResponse'
+
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableResponse'
+
 components:
 
   schemas:
@@ -1432,6 +1573,43 @@ components:
         meta:
           $ref: '#/components/schemas/Meta'
 
+    UpdateUserRoleRequest:
+      type: object
+      required: [role, updatedAt]
+      properties:
+        role:
+          type: string
+          enum: [USER, TECH_SUPPORT, ADMIN]
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last known updatedAt value for optimistic concurrency control
+
+    UpdateUserStatusRequest:
+      type: object
+      required: [status, updatedAt]
+      properties:
+        status:
+          type: string
+          enum: [active, blocked]
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last known updatedAt value for optimistic concurrency control
+
+    UpdateUserProfileRequest:
+      type: object
+      required: [updatedAt]
+      properties:
+        username:
+          type: string
+        phone:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last known updatedAt value for optimistic concurrency control
+
   responses:
 
     ErrorResponse:
@@ -1464,6 +1642,20 @@ components:
 
     ServiceUnavailableResponse:
       description: "Service temporarily unavailable (code: SERVICE_UNAVAILABLE)"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    BadRequestResponse:
+      description: "Invalid request (code: BAD_REQUEST)"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ConflictResponse:
+      description: "Conflict: concurrent modification or business rule violation (code: OUTDATED_DATA | SELF_MODIFICATION_NOT_ALLOWED)"
       content:
         application/json:
           schema:
