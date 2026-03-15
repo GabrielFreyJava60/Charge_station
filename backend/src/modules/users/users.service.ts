@@ -21,8 +21,22 @@ export interface UserInfo {
   updatedAt: string | null;
 }
 
+export interface ListUsersFilters {
+  role?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ListUsersResult {
+  data: UserInfo[];
+  totalItems: number;
+}
+
 export interface UsersService {
   getMyInfo(userId: string): Promise<UserInfo>;
+  getUserById(adminId: string, userId: string): Promise<UserInfo | null>;
+  listUsers(adminId: string, filters: ListUsersFilters): Promise<ListUsersResult>;
   updateOwnProfile(userId: string, payload: UpdateProfilePayload): Promise<void>;
   updateUserProfileAsAdmin(adminId: string, userId: string, payload: UpdateProfilePayload): Promise<void>;
   updateUserRole(adminId: string, userId: string, role: string): Promise<void>;
@@ -46,6 +60,47 @@ export class LambdaUsersService implements UsersService {
     }
 
     return result as UserInfo;
+  }
+
+  async getUserById(adminId: string, userId: string): Promise<UserInfo | null> {
+    logger.debug('Invoking userInfo lambda: getUserById (admin)', { adminId, userId });
+    const result = await LAMBDA_INVOKER.invokeJson<UserInfo | { error?: string }>(
+      env.userInfoLambdaFunctionName,
+      {
+        action: 'get_user_by_id',
+        caller_id: adminId,
+        user_id: userId
+      }
+    );
+
+    if (result && 'error' in result) {
+      if (result.error === 'USER_NOT_FOUND' || String(result.error).toLowerCase().includes('not found')) {
+        return null;
+      }
+      throw new Error(`userInfo lambda error: ${result.error}`);
+    }
+
+    return result as UserInfo;
+  }
+
+  async listUsers(adminId: string, filters: ListUsersFilters): Promise<ListUsersResult> {
+    logger.debug('Invoking userManagement lambda: listUsers', { adminId, filters });
+    const result = await LAMBDA_INVOKER.invokeJson<ListUsersResult | UserInfo[]>(
+      env.userManagementLambdaFunctionName,
+      {
+        action: 'list_users',
+        caller_id: adminId,
+        role: filters.role,
+        status: filters.status,
+        page: filters.page ?? 1,
+        pageSize: filters.pageSize ?? 200
+      }
+    );
+
+    if (Array.isArray(result)) {
+      return { data: result, totalItems: result.length };
+    }
+    return result;
   }
 
   async updateOwnProfile(userId: string, payload: UpdateProfilePayload): Promise<void> {

@@ -15,6 +15,20 @@ export function usersRouter(): Router {
   router.patch('/users/me/profile', verifyCognitoJwt, controller.updateMyProfile);
 
   // Админские операции над любыми аккаунтами
+  router.get(
+    '/admin/users',
+    verifyCognitoJwt,
+    requireGroups([ADMIN_GROUP]),
+    controller.listUsers
+  );
+
+  router.get(
+    '/admin/users/:userId',
+    verifyCognitoJwt,
+    requireGroups([ADMIN_GROUP]),
+    controller.getUserById
+  );
+
   router.patch(
     '/admin/users/:userId/profile',
     verifyCognitoJwt,

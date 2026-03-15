@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { createLogger } from '../../utils/logger';
-import { wrapResponse } from '../../common/wrappers';
+import { wrapResponse, wrapResponseList } from '../../common/wrappers';
 import type { UsersService } from './users.service';
 
 const logger = createLogger('users.controller');
@@ -15,8 +15,55 @@ const updateRoleSchema = z.object({
   role: z.string().min(1)
 });
 
+const listUsersQuerySchema = z.object({
+  role: z.string().optional(),
+  status: z.string().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().min(1).max(200).default(200)
+});
+
 export class UsersController {
-  constructor(private readonly service: UsersService) {}
+  constructor(private readonly service: UsersService) { }
+
+  listUsers = async (req: Request, res: Response) => {
+    const adminId = req.user?.sub;
+    if (!adminId) {
+      return res
+        .status(401)
+        .json({ error: { code: 'UNAUTHENTICATED', message: 'Authentication required' } });
+    }
+
+    const query = listUsersQuerySchema.parse(req.query);
+    const { data, totalItems } = await this.service.listUsers(adminId, {
+      role: query.role,
+      status: query.status,
+      page: query.page,
+      pageSize: query.pageSize
+    });
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+    res.status(200).json(wrapResponseList(data, totalItems, query.pageSize, query.page, totalPages));
+  };
+
+  getUserById = async (req: Request, res: Response) => {
+    const adminId = req.user?.sub;
+    const { userId } = req.params;
+
+    if (!adminId) {
+      return res
+        .status(401)
+        .json({ error: { code: 'UNAUTHENTICATED', message: 'Authentication required' } });
+    }
+
+    const user = await this.service.getUserById(adminId, userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } });
+    }
+
+    res.status(200).json(wrapResponse(user));
+  };
 
   getMe = async (req: Request, res: Response) => {
     if (!req.user?.sub) {
