@@ -11,6 +11,9 @@ import {
   type ResendConfirmationCodeRequest,
   ResendConfirmationCodeCommand,
   UserNotConfirmedException,
+  type GetTokensFromRefreshTokenRequest,
+  type GetTokensFromRefreshTokenResponse,
+  GetTokensFromRefreshTokenCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { getLogger } from '@/services/logging';
 import { config } from '@/config/env';
@@ -120,26 +123,54 @@ function getUserRole(userGroups: string[]): UserRole {
   return "USER";
 }
 
-export const signIn = async (email: string, password: string): Promise<AuthDataType> => {
-  const authResult = await initiateSignIn(email, password);
-  if (!authResult) {
-    throw Error("Empty authentication result");
-  }
-  const { AccessToken, IdToken } = authResult;
+
+function unpackAuthResult({ AccessToken, IdToken, RefreshToken, TokenType}: AuthenticationResultType): AuthDataType {
   if (!AccessToken) {
     throw Error("No access token retrieved");
   }
   if (!IdToken) {
     throw new Error("No ID token retrieved");
   }
+  if (!RefreshToken) {
+    throw new Error("No refresh token retrieved");
+  }
+  if (!(TokenType === 'Bearer')) {
+    throw new Error("Wrong token type retrieved");
+  }
   const payload: AuthPayload = parseJwt(IdToken);
-  const sub = payload?.sub;
+  logger.debug("Auth payload: ", payload);
+  const { sub, email, "cognito:groups": groups } = payload;
   if (!sub) {
-    throw Error("Wrong token format");
+    throw Error("Wrong token format: sub claim is required");
   }
-  const userRole = getUserRole(payload["cognito:groups"] ?? []);
+  if (!email) {
+    throw Error("Wrong token format: email claim is required");
+  }
+  const userRole = getUserRole(groups ?? []);
   return {
-    user: { id: sub, email: payload.email ?? email, userRole },
-    session: {accessToken: AccessToken},
+    user: { id: sub, email, userRole },
+    session: {accessToken: AccessToken, refreshToken: RefreshToken},
+  } 
+}
+
+export const getTokensFromRefreshToken = async (refreshToken: string) => {
+  const input: GetTokensFromRefreshTokenRequest = { // GetTokensFromRefreshTokenRequest
+    RefreshToken: refreshToken,
+    ClientId: config.cognitoClientId,
+  };
+  const command = new GetTokensFromRefreshTokenCommand(input);
+  const response: GetTokensFromRefreshTokenResponse = await cognitoClient.send(command);
+  const authResult = response.AuthenticationResult;
+  if (!authResult) {
+    throw Error("Empty authentication result");
   }
+  return unpackAuthResult(authResult);
+};
+
+export const signIn = async (email: string, password: string): Promise<AuthDataType> => {
+  const authResult = await initiateSignIn(email, password);
+  if (!authResult) {
+    throw Error("Empty authentication result");
+  }
+  return unpackAuthResult(authResult);
 }

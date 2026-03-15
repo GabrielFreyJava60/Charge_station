@@ -11,7 +11,7 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     const [user, setUser] = useState<User | null>(() => restoreUser());
     const [session, setSession] = useState<AuthSession | null>(() => {
         const token = restoreToken();
-        return token ? { accessToken: token } : null;
+        return token ? { accessToken: token ,refreshToken: "" } : null;
     });
     const [loading, setLoading] = useState<boolean>(false);
     

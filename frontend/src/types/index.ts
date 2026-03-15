@@ -8,6 +8,7 @@ export interface User {
 
 export interface AuthSession {
   accessToken: string;
+  refreshToken: string;
 }
 
 export interface AuthPayload {
