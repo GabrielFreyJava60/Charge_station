@@ -5,14 +5,18 @@ import './index.css';
 import { getLogger } from '@/services/logging';
 import router from './router/router.tsx';
 import { AuthProvider } from './auth/AuthProvider.tsx';
+import { Provider } from "react-redux";
+import { store } from "./store/store";
 
 const logger = getLogger();
 logger.info("Application bootstrap");
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <Provider store={store}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </Provider>
   </StrictMode>,
 )
