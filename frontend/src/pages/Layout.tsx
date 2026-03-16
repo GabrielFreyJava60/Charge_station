@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router';
+import { Outlet } from 'react-router-dom';
 import { type FC } from 'react';
 import NavMenu from "@/components/NavMenu";
 

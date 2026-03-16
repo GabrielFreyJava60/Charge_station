@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet } from "react-router-dom";
 import { type FC } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_PATH } from "@/router/roleNavigation";

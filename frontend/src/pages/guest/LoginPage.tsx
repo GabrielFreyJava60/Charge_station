@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useState } from "react";
 import SignInForm from "@/components/SignInForm";
 import { getLogger } from "@/services/logging";

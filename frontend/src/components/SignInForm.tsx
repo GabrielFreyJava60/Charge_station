@@ -1,5 +1,5 @@
 import { useState, type FC } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 interface SignInFormProps{
   isRegister: boolean;

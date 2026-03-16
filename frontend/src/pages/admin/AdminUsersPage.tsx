@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { fetchAdminUsers } from '@/services/api/adminApi';
 import type { AdminUser } from '@/types/responseTypes';
 

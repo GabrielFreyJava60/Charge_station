@@ -1,6 +1,6 @@
 import { getLogger } from "@/services/logging";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import SignInForm from "@/components/SignInForm";
 import { useState } from "react";
 

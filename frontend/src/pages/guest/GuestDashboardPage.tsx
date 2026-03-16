@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router';
+import { NavLink } from 'react-router-dom';
 import HealthChecker from '@/components/HealthChecker';
 import WelcomeTable from '@/components/WelcomeTable';
 

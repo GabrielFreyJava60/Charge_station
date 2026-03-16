@@ -3,9 +3,6 @@ import { useCallback, useState } from "react";
 import type { FC } from "react";
 import { getLogger } from "@/services/logging";
 import type { HealthResponse } from "@/types/responseTypes";
-import { config } from "@/config/env";
-
-const API_BASE_URL = config.apiBaseUrl;
 
 const logger = getLogger();
 
@@ -26,13 +23,12 @@ const HealthChecker: FC<HealthCheckerProps> = ({
   const [checkInfo, setCheckInfo] = useState<string>(defaultInfo);
   
   const buttonCaption = `Check ${endpoint}`;
-  const healthCheckUrl = `${API_BASE_URL}${endpoint}`;
 
   const handleClick = useCallback(
     async () => {
       try {
         setIsLoading(true);
-        const { code, status } = await apiClient.get<HealthResponse>(healthCheckUrl);
+        const { code, status } = await apiClient.get<HealthResponse>(endpoint);
         setCheckInfo(`Successfully checked at ${getTime()}. Status="${status}", code="${code}"`);
       }
       catch (error) {

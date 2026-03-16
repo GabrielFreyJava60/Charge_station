@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router";
+import { Navigate } from "react-router-dom";
 import { getHomePath, LOGIN_PATH } from "./roleNavigation";
 
 const AppRedirect: React.FC = () => {

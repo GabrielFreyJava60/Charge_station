@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { AdminUser } from '@/types/responseTypes';
 
 const fields: { label: string; key: keyof AdminUser }[] = [

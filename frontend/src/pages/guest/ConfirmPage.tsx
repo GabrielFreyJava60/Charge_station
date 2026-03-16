@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router-dom";
 import { confirmSignUp, resendConfirmationCode } from "@/services/auth/authService";
 
 import { getLogger } from "@/services/logging";
