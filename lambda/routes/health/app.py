@@ -1,4 +1,3 @@
-import json
 from utils.logger import logger, log_audit
 
 def handler(event, context):
