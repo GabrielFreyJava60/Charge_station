@@ -11,6 +11,7 @@ import SupportStationsPage from '@/pages/support/SupportStationsPage';
 import SupportSessionsPage from '@/pages/support/SupportSessionsPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import AdminUserEditPage from '@/pages/admin/AdminUserEditPage';
 import AdminStationsPage from '@/pages/admin/AdminStationsPage';
 import RoleRoute from './RoleRoute';
 import Layout from '@/pages/Layout';
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
                         children: [
                         { index: true, element: <AdminDashboardPage /> },
                         { path: "users", element: <AdminUsersPage /> },
+                        { path: "users/:userId", element: <AdminUserEditPage /> },
                         { path: "stations", element: <AdminStationsPage /> }
                         ]
                     }
